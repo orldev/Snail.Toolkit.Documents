@@ -26,7 +26,7 @@ public sealed partial class WordReader : IFormatReader
 
     private static IReadOnlyList<Block> Read(Stream content, CancellationToken cancellationToken)
     {
-        using var word = OfficePackage.Opened(() => WordprocessingDocument.Open(content, isEditable: false));
+        using var word = OfficePackage.Opened(content, package => WordprocessingDocument.Open(package, isEditable: false));
 
         var main = word.MainDocumentPart ?? throw new InvalidDataException("the file holds no document");
         var body = main.Document?.Body ?? throw new InvalidDataException("the document has no body");

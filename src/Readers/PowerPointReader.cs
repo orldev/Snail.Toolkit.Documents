@@ -24,7 +24,7 @@ public sealed class PowerPointReader : IFormatReader
 
     private static IReadOnlyList<Block> Read(Stream content, CancellationToken cancellationToken)
     {
-        using var deck = OfficePackage.Opened(() => PresentationDocument.Open(content, isEditable: false));
+        using var deck = OfficePackage.Opened(content, package => PresentationDocument.Open(package, isEditable: false));
 
         var presentation = deck.PresentationPart ?? throw new InvalidDataException("the file holds no presentation");
         List<Block> blocks = [];

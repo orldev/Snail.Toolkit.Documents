@@ -31,6 +31,18 @@ public static class ReadingLimits
     /// </remarks>
     public const int MostReadingSeconds = 30;
 
+    /// <summary>Bytes an Office file may unpack to, all its parts together.</summary>
+    /// <remarks>Word, Excel and PowerPoint files are zip archives: a few kilobytes can unpack to gigabytes, and a reader would try.</remarks>
+    public const long MostUnpackedBytes = 256L * 1024 * 1024;
+
+    /// <summary>How many times its own size an Office file may unpack to.</summary>
+    /// <remarks>
+    /// The limit the worker of Snail.Swarm.Agent refused Office files with before it read them through this library, kept
+    /// as it was together with <see cref="MostUnpackedBytes"/>: a document's XML compresses well, but a bomb compresses by
+    /// thousands — eight megabytes of zeros pack into some eight kilobytes.
+    /// </remarks>
+    public const int MostUnpackingRatio = 100;
+
     /// <summary>Levels a list item is indented at most; Word and PowerPoint number nine, from 0 to 8.</summary>
     /// <remarks>A level is an integer in the file, and indenting by it would turn one item into a line of millions of spaces.</remarks>
     public const int MostListDepth = 8;

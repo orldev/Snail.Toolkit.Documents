@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using Snail.Toolkit.Documents.Readers;
@@ -78,6 +79,42 @@ public sealed class HostileFileTests
         Assert.InRange(clock.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
+    /// <summary>
+    /// Eight megabytes of zeros pack into a few kilobytes: named a workbook, the SDK would unpack every byte before it saw
+    /// that nothing in it is a sheet. Refused from the zip's own directory, before anything is unpacked.
+    /// </summary>
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".docx")]
+    [InlineData(".pptx")]
+    public async Task Read_OfficeFileThatUnpacksAHundredTimesItsSize_IsRefusedBeforeItIsOpened(string extension)
+    {
+        var reading = await DocumentReader.Every.ReadAsync(new MemoryStream(Bomb()), $"bomb{extension}");
+
+        Assert.Equal(ReadingFailure.TooLarge, reading.Failure);
+        Assert.Contains("would unpack to 8388608", reading.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>A stream that cannot seek is read into memory first: the size is checked and the package still opens.</summary>
+    [Fact]
+    public async Task Read_WordFromAStreamThatCannotSeek_IsRead()
+    {
+        var reading = await DocumentReader.Every.ReadAsync(new ForwardOnly(Samples.Word()), "report.docx");
+
+        Assert.True(reading.IsRead, reading.Reason);
+    }
+
+    private static byte[] Bomb()
+    {
+        using var buffer = new MemoryStream();
+
+        using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+        using (var entry = archive.CreateEntry("xl/sheet.xml", CompressionLevel.Optimal).Open())
+            entry.Write(new byte[8 * 1024 * 1024]);
+
+        return buffer.ToArray();
+    }
+
     private static async Task<Document> ReadAsync(IFormatReader reader, byte[] file) =>
         Markdown.Of(reader.Format, await reader.ReadAsync(new MemoryStream(file)));
 
@@ -114,4 +151,10 @@ public sealed class HostileFileTests
 
     private static S.Cell Cell(string reference, string text) =>
         new() { CellReference = reference, DataType = S.CellValues.InlineString, InlineString = new S.InlineString(new S.Text(text)) };
+
+    /// <summary>A stream read once from the start, as a network or a pipe gives it.</summary>
+    private sealed class ForwardOnly(byte[] bytes) : MemoryStream(bytes)
+    {
+        public override bool CanSeek => false;
+    }
 }

@@ -29,7 +29,7 @@ public sealed partial class ExcelReader : IFormatReader
 
     private static IReadOnlyList<Block> Read(Stream content, CancellationToken cancellationToken)
     {
-        using var book = OfficePackage.Opened(() => SpreadsheetDocument.Open(content, isEditable: false));
+        using var book = OfficePackage.Opened(content, package => SpreadsheetDocument.Open(package, isEditable: false));
 
         var workbook = book.WorkbookPart ?? throw new InvalidDataException("the file holds no workbook");
         IReadOnlyList<string> shared = [.. workbook.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().Select(item => item.InnerText) ?? []];
