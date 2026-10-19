@@ -1,0 +1,19 @@
+<Project Sdk="Snail.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Snail.Toolkit.Documents.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="System.Text.Json.Nodes" />
+    <Using Include="Snail.Toolkit.Documents.Tests.Support" />
+  </ItemGroup>
+
+</Project>
