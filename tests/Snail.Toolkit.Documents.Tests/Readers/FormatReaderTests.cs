@@ -135,6 +135,16 @@ public sealed class FormatReaderTests
     public Task Pdf_ThatIsNotAPdf_IsDamagedData() =>
         Assert.ThrowsAsync<InvalidDataException>(() => new PdfReader().ReadAsync(new MemoryStream("not a pdf"u8.ToArray())));
 
+    /// <summary>A document a program generated names the built-in style Heading1 and leaves the styles part out: still a heading, as Word shows it.</summary>
+    [Fact]
+    public async Task Word_HeadingStyleTheFileDoesNotDefine_IsAHeadingByItsBuiltInId()
+    {
+        var document = await ReadAsync(new WordReader(), GeneratedWord());
+
+        Assert.Equal("## Findings", document.Text.Split('\n')[0]);
+        Assert.Equal(2, Assert.Single(document.Headings).Level);
+    }
+
     /// <summary>A locked PDF says so, rather than being called damaged and asked for again.</summary>
     [Fact]
     public async Task Pdf_LockedByAPassword_IsRefusedAsLocked()
@@ -290,4 +300,20 @@ public sealed class FormatReaderTests
         Markdown.Of(reader.Format, await reader.ReadAsync(new MemoryStream(bytes)));
 
     private static string[][] Rows(Table table) => [.. table.Rows.Select(row => row.ToArray())];
+
+    private static byte[] GeneratedWord()
+    {
+        using var stream = new MemoryStream();
+
+        using (var word = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Create(stream, DocumentFormat.OpenXml.WordprocessingDocumentType.Document))
+        {
+            word.AddMainDocumentPart().Document = new DocumentFormat.OpenXml.Wordprocessing.Document(new DocumentFormat.OpenXml.Wordprocessing.Body(
+                new DocumentFormat.OpenXml.Wordprocessing.Paragraph(
+                    new DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties(new DocumentFormat.OpenXml.Wordprocessing.ParagraphStyleId { Val = "Heading2" }),
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text("Findings"))),
+                new DocumentFormat.OpenXml.Wordprocessing.Paragraph(new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text("Sales rose.")))));
+        }
+
+        return stream.ToArray();
+    }
 }

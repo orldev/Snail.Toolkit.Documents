@@ -14,6 +14,18 @@ namespace Snail.Toolkit.Documents.Readers;
 /// </remarks>
 public sealed partial class WordReader : IFormatReader
 {
+    /// <summary>The ids of Word's built-in heading styles, with their levels.</summary>
+    private static readonly IReadOnlyDictionary<string, int> BuiltInHeadings = new Dictionary<string, int>(StringComparer.Ordinal)
+    {
+        ["Title"] = 1,
+        ["Heading1"] = 1,
+        ["Heading2"] = 2,
+        ["Heading3"] = 3,
+        ["Heading4"] = 4,
+        ["Heading5"] = 5,
+        ["Heading6"] = 6
+    };
+
     /// <inheritdoc/>
     public DocumentKind Format => DocumentKind.Word;
 
@@ -114,14 +126,21 @@ public sealed partial class WordReader : IFormatReader
         string.Join(' ', cell.Elements<W.Paragraph>().Select(Text).Where(line => line.Length > 0));
 
     /// <summary>The heading level of every style that is a heading, by style id.</summary>
+    /// <remarks>
+    /// The built-in ids count as headings until the file defines them otherwise: a document a program generated names the
+    /// style <c>Heading1</c> and leaves the styles part out, and Word itself shows such a paragraph as a heading. A style the
+    /// file does define is a heading only if its outline level or its name says so.
+    /// </remarks>
     private static IReadOnlyDictionary<string, int> HeadingLevels(StyleDefinitionsPart? styles)
     {
-        Dictionary<string, int> levels = new(StringComparer.Ordinal);
+        Dictionary<string, int> levels = new(BuiltInHeadings, StringComparer.Ordinal);
 
         foreach (var style in styles?.Styles?.Elements<W.Style>() ?? [])
         {
             if (style.StyleId?.Value is not { } id)
                 continue;
+
+            levels.Remove(id);
 
             if (style.StyleParagraphProperties?.OutlineLevel?.Val?.Value is { } outline && outline < 6)
                 levels[id] = outline + 1;
