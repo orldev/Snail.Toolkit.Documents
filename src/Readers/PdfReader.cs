@@ -45,7 +45,8 @@ public sealed class PdfReader : IFormatReader
         return blocks;
     }
 
-    private static PdfDocument Opened(Stream content)
+    /// <summary>The PDF opened, every way it can fail to open turned into the failure the readers share.</summary>
+    internal static PdfDocument Opened(Stream content)
     {
         try
         {
