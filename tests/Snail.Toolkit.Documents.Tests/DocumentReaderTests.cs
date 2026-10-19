@@ -93,8 +93,9 @@ public sealed class DocumentReaderTests
 
         var reader = provider.GetRequiredService<DocumentReader>();
 
-        Assert.Equal(Enum.GetValues<DocumentKind>().Length, provider.GetServices<IFormatReader>().Count());
+        Assert.Equal(Documents.Readers.Formats.Every().Count, provider.GetServices<IFormatReader>().Count());
         Assert.Contains(".pptx", reader.Extensions);
+        Assert.Contains(".xls", reader.Extensions);
     }
 
     private static byte[] WithEntry(byte[] package, string entry, string text)

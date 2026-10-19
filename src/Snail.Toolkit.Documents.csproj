@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <Description>Reads PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, Markdown and text into one Markdown text with its pages, headings and tables.</Description>
-    <PackageTags>snail;documents;pdf;docx;xlsx;pptx;html;csv;markdown;text-extraction</PackageTags>
+    <PackageTags>snail;documents;pdf;docx;xlsx;xls;pptx;html;csv;markdown;text-extraction</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" />
     <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="ExcelDataReader" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="PdfPig" />
   </ItemGroup>

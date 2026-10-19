@@ -1,6 +1,6 @@
 namespace Snail.Toolkit.Documents;
 
-/// <summary>A document as this server serves it: its text as Markdown and where everything in it stands.</summary>
+/// <summary>A document read: its text as Markdown and where everything in it stands.</summary>
 /// <param name="Format">What the file was.</param>
 /// <param name="Text">The whole text, as Markdown.</param>
 /// <param name="Parts">Its pages, sheets or slides, in order; empty for a document that is not divided.</param>
@@ -22,6 +22,9 @@ public sealed record Section(int Level, string Title, int Start);
 /// <summary>A table of the document: its number, the part it is on and its rows.</summary>
 public sealed record Table(int Number, string? Title, int? Part, int Start, IReadOnlyList<IReadOnlyList<string>> Rows)
 {
+    /// <summary>Where its cells stand on the sheet; null for a table that is not a sheet's.</summary>
+    public CellAddresses? Addresses { get; init; }
+
     /// <summary>The widest row: the number of columns the table is read with.</summary>
     public int Columns => Rows.Count == 0 ? 0 : Rows.Max(row => row.Count);
 }

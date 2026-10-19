@@ -22,7 +22,11 @@ public sealed record Paragraph(string Text) : Block;
 public sealed record ListItem(int Depth, string Text, bool IsOrdered) : Block;
 
 /// <summary>A table, its first row the header as the document has it.</summary>
-public sealed record TableBlock(string? Title, IReadOnlyList<IReadOnlyList<string>> Rows) : Block;
+public sealed record TableBlock(string? Title, IReadOnlyList<IReadOnlyList<string>> Rows) : Block
+{
+    /// <summary>Where its cells stand on the sheet; null for a table that is not a sheet's.</summary>
+    public CellAddresses? Addresses { get; init; }
+}
 
 /// <summary>Text kept exactly as written: code, or data that has no prose shape.</summary>
 public sealed record CodeBlock(string Language, string Text) : Block;

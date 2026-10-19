@@ -136,6 +136,14 @@ internal static class Samples
     public static byte[] ExcelWithoutStyles() =>
         Workbook(null, SheetRow(1, new S.Cell { CellReference = "A1", StyleIndex = 1, CellValue = new S.CellValue("46305") }));
 
+    /// <summary>
+    /// An Excel 97–2003 workbook, as accounting systems still export: a sheet of invoices whose cells start at B2, with a
+    /// date, a fraction and an empty row 4, and an empty second sheet. No .NET library writes the format, so the file was
+    /// written once by xlwt 1.3.0 and is kept beside the tests.
+    /// </summary>
+    public static byte[] OldExcel() =>
+        File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Support", "invoices.xls"));
+
     /// <summary>A presentation of one slide: a title, two points one level apart, a table and the speaker's notes.</summary>
     public static byte[] Slides()
     {

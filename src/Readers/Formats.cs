@@ -8,6 +8,7 @@ public static class Formats
     [
         new WordReader(),
         new ExcelReader(),
+        new XlsReader(),
         new PowerPointReader(),
         new PdfReader(),
         new HtmlReader(),

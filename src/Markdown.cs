@@ -43,7 +43,7 @@ public static class Markdown
                     headings.Add(new Section(heading.Level, heading.Text, at));
                     break;
                 case TableBlock table:
-                    tables.Add(new Table(tables.Count + 1, table.Title, parts.Count > 0 ? parts[^1].Start.Number : null, at, table.Rows));
+                    tables.Add(new Table(tables.Count + 1, table.Title, parts.Count > 0 ? parts[^1].Start.Number : null, at, table.Rows) { Addresses = table.Addresses });
                     break;
             }
 
@@ -63,6 +63,7 @@ public static class Markdown
         Heading heading => string.IsNullOrWhiteSpace(heading.Text) ? string.Empty : $"{new string('#', Math.Clamp(heading.Level, 1, 6))} {Line(heading.Text)}",
         Paragraph paragraph => paragraph.Text.Trim(),
         ListItem item => string.IsNullOrWhiteSpace(item.Text) ? string.Empty : $"{new string(' ', Math.Clamp(item.Depth, 0, ReadingLimits.MostListDepth) * 2)}{(item.IsOrdered ? "1." : "-")} {Line(item.Text)}",
+        TableBlock { Addresses: { } addresses } table => Grid(Addressed(table.Rows, addresses)),
         TableBlock table => Grid(table.Rows),
         CodeBlock code => string.IsNullOrWhiteSpace(code.Text) ? string.Empty : $"```{code.Language}\n{code.Text.TrimEnd()}\n```",
         _ => string.Empty
@@ -105,6 +106,17 @@ public static class Markdown
         }
 
         return grid.ToString();
+    }
+
+    /// <summary>A sheet's rows under the letters of their columns, each after its number on the sheet.</summary>
+    /// <remarks>The sheet's own first row becomes a row like any other: on a sheet, a header is only what someone typed there.</remarks>
+    internal static IReadOnlyList<IReadOnlyList<string>> Addressed(IReadOnlyList<IReadOnlyList<string>> rows, CellAddresses addresses)
+    {
+        int columns = rows.Count == 0 ? 0 : rows.Max(row => row.Count);
+        IReadOnlyList<string> letters = [string.Empty, .. Enumerable.Range(0, columns).Select(column => CellAddresses.Letters(addresses.FirstColumn + column))];
+        IEnumerable<IReadOnlyList<string>> numbered = rows.Select((row, index) => (IReadOnlyList<string>)[$"{addresses.Rows[index]}", .. row]);
+
+        return [letters, .. numbered];
     }
 
     private static string Cell(string text) =>

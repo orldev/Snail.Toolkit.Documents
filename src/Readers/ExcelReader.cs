@@ -42,16 +42,18 @@ public sealed partial class ExcelReader : IFormatReader
             number++;
             blocks.Add(new PartStart(PartKind.Sheet, number, sheet.Name?.Value));
 
-            if (sheet.Id?.Value is { } id && workbook.GetPartById(id) is WorksheetPart part && Rows(part, shared, dates, cancellationToken) is { Count: > 0 } rows)
-                blocks.Add(new TableBlock(sheet.Name?.Value, rows));
+            if (sheet.Id?.Value is { } id && workbook.GetPartById(id) is WorksheetPart part && Table(sheet.Name?.Value, part, shared, dates, cancellationToken) is { } table)
+                blocks.Add(table);
         }
 
         return blocks;
     }
 
-    private static IReadOnlyList<IReadOnlyList<string>> Rows(WorksheetPart part, IReadOnlyList<string> shared, IReadOnlySet<uint> dates, CancellationToken cancellationToken)
+    /// <summary>The used cells of a sheet as one table, each row under its number on the sheet; null for a sheet with none.</summary>
+    private static TableBlock? Table(string? title, WorksheetPart part, IReadOnlyList<string> shared, IReadOnlySet<uint> dates, CancellationToken cancellationToken)
     {
         List<string[]> rows = [];
+        List<int> numbers = [];
         long padded = 0;
 
         foreach (var row in part.Worksheet?.Descendants<Row>() ?? [])
@@ -82,14 +84,10 @@ public sealed partial class ExcelReader : IFormatReader
                 filled[column] = value;
 
             rows.Add(filled);
+            numbers.Add(row.RowIndex?.Value is { } index ? (int)index : (numbers.Count > 0 ? numbers[^1] : 0) + 1);
         }
 
-        if (rows.Count == 0)
-            return [];
-
-        int first = rows.Min(row => Array.FindIndex(row, value => value.Length > 0));
-
-        return [.. rows.Select(row => (IReadOnlyList<string>)row[first..])];
+        return Sheets.Table(title, rows, numbers);
     }
 
     private static string Value(Cell cell, IReadOnlyList<string> shared, IReadOnlySet<uint> dates)

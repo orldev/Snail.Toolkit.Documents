@@ -44,8 +44,38 @@ public sealed class FormatReaderTests
         Assert.Equal(["Выручка", "Пусто"], document.Parts.Select(part => part.Title));
         Assert.Equal([["Дата", "Сумма"], ["2026-10-10", "0.3"], [string.Empty, "12"]], Rows(Assert.Single(document.Tables)));
         Assert.Equal(1, document.Tables[0].Part);
-        Assert.StartsWith("## Sheet 1: Выручка\n\n| Дата | Сумма |", document.Text, StringComparison.Ordinal);
+        Assert.StartsWith("## Sheet 1: Выручка\n\n|  | A | B |\n| --- | --- | --- |\n| 1 | Дата | Сумма |", document.Text, StringComparison.Ordinal);
     }
+
+    /// <summary>A sheet that skips a row still names every cell where it stands: the third row of the table is row 4 of the sheet.</summary>
+    [Fact]
+    public async Task Excel_SheetThatSkipsARow_NamesEveryCellWhereItStands()
+    {
+        var document = await ReadAsync(new ExcelReader(), Samples.Excel());
+
+        var addresses = document.Tables[0].Addresses!;
+
+        Assert.Equal("B4", addresses.Of(2, 1));
+        Assert.Contains("| 4 |  | 12 |", document.Text, StringComparison.Ordinal);
+    }
+
+    /// <summary>An older .xls reads as the same sheet a .xlsx would: dates by their format, numbers as Excel shows them, cells where they stand.</summary>
+    [Fact]
+    public async Task Xls_WorkbookOfTheOlderFormat_ReadsLikeAWorkbookOfTheNewer()
+    {
+        var document = await ReadAsync(new XlsReader(), Samples.OldExcel());
+
+        var table = Assert.Single(document.Tables);
+
+        Assert.Equal(["Счета", "Пусто"], document.Parts.Select(part => part.Title));
+        Assert.Equal([["Номер", "Дата", "Сумма"], ["INV-7", "2026-10-14", "118000.5"], ["INV-8", string.Empty, "42"]], Rows(table));
+        Assert.Equal("B2", table.Addresses!.Of(0, 0));
+        Assert.Equal("D5", table.Addresses.Of(2, 2));
+    }
+
+    [Fact]
+    public async Task Xls_BytesThatAreNotAWorkbook_AreCalledDamaged() =>
+        await Assert.ThrowsAsync<InvalidDataException>(() => new XlsReader().ReadAsync(new MemoryStream(Samples.Csv())));
 
     /// <summary>Every cell reads as Excel shows it: a boolean as TRUE, an error as itself, a date by a format the workbook defines.</summary>
     [Fact]
