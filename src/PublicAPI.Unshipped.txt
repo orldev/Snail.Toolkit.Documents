@@ -1,4 +1,5 @@
 #nullable enable
+static Snail.Toolkit.Documents.DocumentReadingRegistration.AddDocumentReading(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Snail.Toolkit.Documents.Block
 abstract Snail.Toolkit.Documents.Block.<Clone>$() -> Snail.Toolkit.Documents.Block!
 Snail.Toolkit.Documents.Block.Block() -> void
@@ -38,6 +39,18 @@ Snail.Toolkit.Documents.DocumentKind.Pdf = 3 -> Snail.Toolkit.Documents.Document
 Snail.Toolkit.Documents.DocumentKind.PowerPoint = 2 -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.DocumentKind.Text = 8 -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.DocumentKind.Word = 0 -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.DocumentLockedException
+Snail.Toolkit.Documents.DocumentLockedException.DocumentLockedException(string! message) -> void
+Snail.Toolkit.Documents.DocumentLockedException.DocumentLockedException(string! message, System.Exception! inner) -> void
+Snail.Toolkit.Documents.DocumentReader
+static Snail.Toolkit.Documents.DocumentReader.Every.get -> Snail.Toolkit.Documents.DocumentReader!
+Snail.Toolkit.Documents.DocumentReader.DocumentReader(System.Collections.Generic.IEnumerable<Snail.Toolkit.Documents.IFormatReader!>! formats, System.TimeProvider? clock = null) -> void
+Snail.Toolkit.Documents.DocumentReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Snail.Toolkit.Documents.DocumentReader.ReadAsync(System.IO.Stream! content, string! fileName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Snail.Toolkit.Documents.Reading!>!
+Snail.Toolkit.Documents.DocumentReader.ReaderFor(string! fileName) -> Snail.Toolkit.Documents.IFormatReader?
+Snail.Toolkit.Documents.DocumentReadingRegistration
+Snail.Toolkit.Documents.DocumentReadingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+Snail.Toolkit.Documents.DocumentReadingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDocumentReading() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Snail.Toolkit.Documents.DocumentTooLargeException
 Snail.Toolkit.Documents.DocumentTooLargeException.DocumentTooLargeException(string! message) -> void
 Snail.Toolkit.Documents.Heading
@@ -116,6 +129,7 @@ Snail.Toolkit.Documents.Readers.ExcelReader.ExcelReader() -> void
 Snail.Toolkit.Documents.Readers.ExcelReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Snail.Toolkit.Documents.Readers.ExcelReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.ExcelReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
+Snail.Toolkit.Documents.Readers.Formats
 Snail.Toolkit.Documents.Readers.HtmlReader
 Snail.Toolkit.Documents.Readers.HtmlReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Snail.Toolkit.Documents.Readers.HtmlReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
@@ -151,6 +165,26 @@ Snail.Toolkit.Documents.Readers.WordReader.Extensions.get -> System.Collections.
 Snail.Toolkit.Documents.Readers.WordReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.WordReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.WordReader.WordReader() -> void
+Snail.Toolkit.Documents.Reading
+static Snail.Toolkit.Documents.Reading.Refused(Snail.Toolkit.Documents.ReadingFailure failure, string! reason) -> Snail.Toolkit.Documents.Reading!
+static Snail.Toolkit.Documents.Reading.Of(Snail.Toolkit.Documents.Document! document) -> Snail.Toolkit.Documents.Reading!
+Snail.Toolkit.Documents.Reading.<Clone>$() -> Snail.Toolkit.Documents.Reading!
+Snail.Toolkit.Documents.Reading.Deconstruct(out Snail.Toolkit.Documents.Document? Document, out Snail.Toolkit.Documents.ReadingFailure? Failure, out string! Reason) -> void
+Snail.Toolkit.Documents.Reading.Document.get -> Snail.Toolkit.Documents.Document?
+Snail.Toolkit.Documents.Reading.Document.init -> void
+Snail.Toolkit.Documents.Reading.Equals(Snail.Toolkit.Documents.Reading? other) -> bool
+Snail.Toolkit.Documents.Reading.Failure.get -> Snail.Toolkit.Documents.ReadingFailure?
+Snail.Toolkit.Documents.Reading.Failure.init -> void
+Snail.Toolkit.Documents.Reading.IsRead.get -> bool
+Snail.Toolkit.Documents.Reading.Reading(Snail.Toolkit.Documents.Document? Document, Snail.Toolkit.Documents.ReadingFailure? Failure, string! Reason) -> void
+Snail.Toolkit.Documents.Reading.Reason.get -> string!
+Snail.Toolkit.Documents.Reading.Reason.init -> void
+Snail.Toolkit.Documents.ReadingFailure
+Snail.Toolkit.Documents.ReadingFailure.Damaged = 1 -> Snail.Toolkit.Documents.ReadingFailure
+Snail.Toolkit.Documents.ReadingFailure.Locked = 2 -> Snail.Toolkit.Documents.ReadingFailure
+Snail.Toolkit.Documents.ReadingFailure.TooLarge = 3 -> Snail.Toolkit.Documents.ReadingFailure
+Snail.Toolkit.Documents.ReadingFailure.TooSlow = 4 -> Snail.Toolkit.Documents.ReadingFailure
+Snail.Toolkit.Documents.ReadingFailure.UnknownFormat = 0 -> Snail.Toolkit.Documents.ReadingFailure
 Snail.Toolkit.Documents.ReadingLimits
 Snail.Toolkit.Documents.Section
 Snail.Toolkit.Documents.Section.<Clone>$() -> Snail.Toolkit.Documents.Section!
@@ -188,71 +222,77 @@ Snail.Toolkit.Documents.TableBlock.Rows.init -> void
 Snail.Toolkit.Documents.TableBlock.TableBlock(string? Title, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<string!>!>! Rows) -> void
 Snail.Toolkit.Documents.TableBlock.Title.get -> string?
 Snail.Toolkit.Documents.TableBlock.Title.init -> void
+static Snail.Toolkit.Documents.Readers.Formats.Every() -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.IFormatReader!>!
 virtual Snail.Toolkit.Documents.Block.EqualityContract.get -> System.Type!
-static Snail.Toolkit.Documents.Block.operator ==(Snail.Toolkit.Documents.Block? left, Snail.Toolkit.Documents.Block? right) -> bool
-static Snail.Toolkit.Documents.PartStart.operator !=(Snail.Toolkit.Documents.PartStart? left, Snail.Toolkit.Documents.PartStart? right) -> bool
-static Snail.Toolkit.Documents.Table.operator ==(Snail.Toolkit.Documents.Table? left, Snail.Toolkit.Documents.Table? right) -> bool
-override sealed Snail.Toolkit.Documents.PartStart.Equals(Snail.Toolkit.Documents.Block? other) -> bool
-static Snail.Toolkit.Documents.Document.operator ==(Snail.Toolkit.Documents.Document? left, Snail.Toolkit.Documents.Document? right) -> bool
 static Snail.Toolkit.Documents.ListItem.operator !=(Snail.Toolkit.Documents.ListItem? left, Snail.Toolkit.Documents.ListItem? right) -> bool
-static Snail.Toolkit.Documents.CodeBlock.operator ==(Snail.Toolkit.Documents.CodeBlock? left, Snail.Toolkit.Documents.CodeBlock? right) -> bool
-override sealed Snail.Toolkit.Documents.ListItem.Equals(Snail.Toolkit.Documents.Block? other) -> bool
-static Snail.Toolkit.Documents.Paragraph.operator ==(Snail.Toolkit.Documents.Paragraph? left, Snail.Toolkit.Documents.Paragraph? right) -> bool
-override Snail.Toolkit.Documents.Part.Equals(object? obj) -> bool
-override Snail.Toolkit.Documents.Heading.Equals(object? obj) -> bool
-static Snail.Toolkit.Documents.Section.operator ==(Snail.Toolkit.Documents.Section? left, Snail.Toolkit.Documents.Section? right) -> bool
-override Snail.Toolkit.Documents.Block.Equals(object? obj) -> bool
-virtual Snail.Toolkit.Documents.Block.PrintMembers(System.Text.StringBuilder! builder) -> bool
-static Snail.Toolkit.Documents.Block.operator !=(Snail.Toolkit.Documents.Block? left, Snail.Toolkit.Documents.Block? right) -> bool
-static Snail.Toolkit.Documents.Paragraph.operator !=(Snail.Toolkit.Documents.Paragraph? left, Snail.Toolkit.Documents.Paragraph? right) -> bool
-override Snail.Toolkit.Documents.Paragraph.Equals(object? obj) -> bool
-override sealed Snail.Toolkit.Documents.TableBlock.Equals(Snail.Toolkit.Documents.Block? other) -> bool
-override Snail.Toolkit.Documents.Section.Equals(object? obj) -> bool
-static Snail.Toolkit.Documents.Document.operator !=(Snail.Toolkit.Documents.Document? left, Snail.Toolkit.Documents.Document? right) -> bool
-static Snail.Toolkit.Documents.Heading.operator ==(Snail.Toolkit.Documents.Heading? left, Snail.Toolkit.Documents.Heading? right) -> bool
-override Snail.Toolkit.Documents.TableBlock.Equals(object? obj) -> bool
-static Snail.Toolkit.Documents.PartStart.operator ==(Snail.Toolkit.Documents.PartStart? left, Snail.Toolkit.Documents.PartStart? right) -> bool
-override Snail.Toolkit.Documents.Document.Equals(object? obj) -> bool
-static Snail.Toolkit.Documents.Part.operator !=(Snail.Toolkit.Documents.Part? left, Snail.Toolkit.Documents.Part? right) -> bool
-static Snail.Toolkit.Documents.TableBlock.operator ==(Snail.Toolkit.Documents.TableBlock? left, Snail.Toolkit.Documents.TableBlock? right) -> bool
-static Snail.Toolkit.Documents.ListItem.operator ==(Snail.Toolkit.Documents.ListItem? left, Snail.Toolkit.Documents.ListItem? right) -> bool
-static Snail.Toolkit.Documents.Heading.operator !=(Snail.Toolkit.Documents.Heading? left, Snail.Toolkit.Documents.Heading? right) -> bool
 static Snail.Toolkit.Documents.Section.operator !=(Snail.Toolkit.Documents.Section? left, Snail.Toolkit.Documents.Section? right) -> bool
-override Snail.Toolkit.Documents.PartStart.Equals(object? obj) -> bool
+override Snail.Toolkit.Documents.Section.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Document.operator ==(Snail.Toolkit.Documents.Document? left, Snail.Toolkit.Documents.Document? right) -> bool
+static Snail.Toolkit.Documents.Part.operator !=(Snail.Toolkit.Documents.Part? left, Snail.Toolkit.Documents.Part? right) -> bool
+override Snail.Toolkit.Documents.Document.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Table.operator ==(Snail.Toolkit.Documents.Table? left, Snail.Toolkit.Documents.Table? right) -> bool
+override Snail.Toolkit.Documents.Block.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Reading.operator !=(Snail.Toolkit.Documents.Reading? left, Snail.Toolkit.Documents.Reading? right) -> bool
+static Snail.Toolkit.Documents.Paragraph.operator ==(Snail.Toolkit.Documents.Paragraph? left, Snail.Toolkit.Documents.Paragraph? right) -> bool
+static Snail.Toolkit.Documents.Reading.operator ==(Snail.Toolkit.Documents.Reading? left, Snail.Toolkit.Documents.Reading? right) -> bool
+override sealed Snail.Toolkit.Documents.TableBlock.Equals(Snail.Toolkit.Documents.Block? other) -> bool
 static Snail.Toolkit.Documents.TableBlock.operator !=(Snail.Toolkit.Documents.TableBlock? left, Snail.Toolkit.Documents.TableBlock? right) -> bool
+override sealed Snail.Toolkit.Documents.ListItem.Equals(Snail.Toolkit.Documents.Block? other) -> bool
+override Snail.Toolkit.Documents.Heading.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.PartStart.operator ==(Snail.Toolkit.Documents.PartStart? left, Snail.Toolkit.Documents.PartStart? right) -> bool
+static Snail.Toolkit.Documents.Block.operator !=(Snail.Toolkit.Documents.Block? left, Snail.Toolkit.Documents.Block? right) -> bool
 static Snail.Toolkit.Documents.CodeBlock.operator !=(Snail.Toolkit.Documents.CodeBlock? left, Snail.Toolkit.Documents.CodeBlock? right) -> bool
-override Snail.Toolkit.Documents.CodeBlock.Equals(object? obj) -> bool
-override sealed Snail.Toolkit.Documents.CodeBlock.Equals(Snail.Toolkit.Documents.Block? other) -> bool
-override sealed Snail.Toolkit.Documents.Paragraph.Equals(Snail.Toolkit.Documents.Block? other) -> bool
-static Snail.Toolkit.Documents.Table.operator !=(Snail.Toolkit.Documents.Table? left, Snail.Toolkit.Documents.Table? right) -> bool
-virtual Snail.Toolkit.Documents.Block.Equals(Snail.Toolkit.Documents.Block? other) -> bool
-static Snail.Toolkit.Documents.Part.operator ==(Snail.Toolkit.Documents.Part? left, Snail.Toolkit.Documents.Part? right) -> bool
 override sealed Snail.Toolkit.Documents.Heading.Equals(Snail.Toolkit.Documents.Block? other) -> bool
+override Snail.Toolkit.Documents.Paragraph.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Part.operator ==(Snail.Toolkit.Documents.Part? left, Snail.Toolkit.Documents.Part? right) -> bool
+override sealed Snail.Toolkit.Documents.PartStart.Equals(Snail.Toolkit.Documents.Block? other) -> bool
+static Snail.Toolkit.Documents.Heading.operator ==(Snail.Toolkit.Documents.Heading? left, Snail.Toolkit.Documents.Heading? right) -> bool
+virtual Snail.Toolkit.Documents.Block.Equals(Snail.Toolkit.Documents.Block? other) -> bool
+static Snail.Toolkit.Documents.PartStart.operator !=(Snail.Toolkit.Documents.PartStart? left, Snail.Toolkit.Documents.PartStart? right) -> bool
+override Snail.Toolkit.Documents.Reading.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.ListItem.operator ==(Snail.Toolkit.Documents.ListItem? left, Snail.Toolkit.Documents.ListItem? right) -> bool
+static Snail.Toolkit.Documents.CodeBlock.operator ==(Snail.Toolkit.Documents.CodeBlock? left, Snail.Toolkit.Documents.CodeBlock? right) -> bool
+override Snail.Toolkit.Documents.TableBlock.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Block.operator ==(Snail.Toolkit.Documents.Block? left, Snail.Toolkit.Documents.Block? right) -> bool
 override Snail.Toolkit.Documents.ListItem.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Heading.operator !=(Snail.Toolkit.Documents.Heading? left, Snail.Toolkit.Documents.Heading? right) -> bool
+override Snail.Toolkit.Documents.Part.Equals(object? obj) -> bool
 override Snail.Toolkit.Documents.Table.Equals(object? obj) -> bool
-override Snail.Toolkit.Documents.Paragraph.GetHashCode() -> int
-const Snail.Toolkit.Documents.ReadingLimits.MostCells = 1000000 -> int
-override Snail.Toolkit.Documents.Section.GetHashCode() -> int
-override Snail.Toolkit.Documents.Table.GetHashCode() -> int
-override Snail.Toolkit.Documents.ListItem.GetHashCode() -> int
-override Snail.Toolkit.Documents.TableBlock.GetHashCode() -> int
-override Snail.Toolkit.Documents.CodeBlock.GetHashCode() -> int
-const Snail.Toolkit.Documents.ReadingLimits.MostDocumentCharacters = 20000000 -> int
-const Snail.Toolkit.Documents.ReadingLimits.MostReadingSeconds = 30 -> int
-override Snail.Toolkit.Documents.Heading.GetHashCode() -> int
+static Snail.Toolkit.Documents.Table.operator !=(Snail.Toolkit.Documents.Table? left, Snail.Toolkit.Documents.Table? right) -> bool
+static Snail.Toolkit.Documents.TableBlock.operator ==(Snail.Toolkit.Documents.TableBlock? left, Snail.Toolkit.Documents.TableBlock? right) -> bool
+override Snail.Toolkit.Documents.PartStart.Equals(object? obj) -> bool
+override sealed Snail.Toolkit.Documents.Paragraph.Equals(Snail.Toolkit.Documents.Block? other) -> bool
+override Snail.Toolkit.Documents.CodeBlock.Equals(object? obj) -> bool
+static Snail.Toolkit.Documents.Document.operator !=(Snail.Toolkit.Documents.Document? left, Snail.Toolkit.Documents.Document? right) -> bool
+static Snail.Toolkit.Documents.Section.operator ==(Snail.Toolkit.Documents.Section? left, Snail.Toolkit.Documents.Section? right) -> bool
+override sealed Snail.Toolkit.Documents.CodeBlock.Equals(Snail.Toolkit.Documents.Block? other) -> bool
+virtual Snail.Toolkit.Documents.Block.PrintMembers(System.Text.StringBuilder! builder) -> bool
+static Snail.Toolkit.Documents.Paragraph.operator !=(Snail.Toolkit.Documents.Paragraph? left, Snail.Toolkit.Documents.Paragraph? right) -> bool
+override Snail.Toolkit.Documents.Reading.GetHashCode() -> int
 const Snail.Toolkit.Documents.ReadingLimits.MostListDepth = 8 -> int
+const Snail.Toolkit.Documents.ReadingLimits.MostCells = 1000000 -> int
+override Snail.Toolkit.Documents.Table.GetHashCode() -> int
+override Snail.Toolkit.Documents.Paragraph.GetHashCode() -> int
 override Snail.Toolkit.Documents.Part.GetHashCode() -> int
-override Snail.Toolkit.Documents.Document.GetHashCode() -> int
+override Snail.Toolkit.Documents.ListItem.GetHashCode() -> int
 override Snail.Toolkit.Documents.Block.GetHashCode() -> int
+override Snail.Toolkit.Documents.Section.GetHashCode() -> int
+override Snail.Toolkit.Documents.CodeBlock.GetHashCode() -> int
+override Snail.Toolkit.Documents.TableBlock.GetHashCode() -> int
+const Snail.Toolkit.Documents.ReadingLimits.MostDocumentCharacters = 20000000 -> int
+override Snail.Toolkit.Documents.Heading.GetHashCode() -> int
+const Snail.Toolkit.Documents.ReadingLimits.MostReadingSeconds = 30 -> int
+override Snail.Toolkit.Documents.Document.GetHashCode() -> int
 override Snail.Toolkit.Documents.PartStart.GetHashCode() -> int
+override Snail.Toolkit.Documents.Heading.ToString() -> string!
 override Snail.Toolkit.Documents.Document.ToString() -> string!
+override Snail.Toolkit.Documents.PartStart.ToString() -> string!
+override Snail.Toolkit.Documents.Table.ToString() -> string!
+override Snail.Toolkit.Documents.Reading.ToString() -> string!
 override Snail.Toolkit.Documents.TableBlock.ToString() -> string!
-override Snail.Toolkit.Documents.ListItem.ToString() -> string!
+override Snail.Toolkit.Documents.Block.ToString() -> string!
+override Snail.Toolkit.Documents.Part.ToString() -> string!
 override Snail.Toolkit.Documents.Section.ToString() -> string!
 override Snail.Toolkit.Documents.CodeBlock.ToString() -> string!
-override Snail.Toolkit.Documents.Table.ToString() -> string!
-override Snail.Toolkit.Documents.Heading.ToString() -> string!
-override Snail.Toolkit.Documents.Part.ToString() -> string!
+override Snail.Toolkit.Documents.ListItem.ToString() -> string!
 override Snail.Toolkit.Documents.Paragraph.ToString() -> string!
-override Snail.Toolkit.Documents.PartStart.ToString() -> string!
-override Snail.Toolkit.Documents.Block.ToString() -> string!

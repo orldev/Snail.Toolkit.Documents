@@ -4,7 +4,8 @@ namespace Snail.Toolkit.Documents;
 /// <remarks>
 /// The stream is already in memory when a reader is called, so most formats are read synchronously inside the task. The
 /// token is what bounds them: a reader checks it between the rows, pages, slides or elements it walks, and HTML is
-/// parsed with it, since a hostile page keeps a parser busy for minutes.
+/// parsed with it, since a hostile page keeps a parser busy for minutes. <see cref="DocumentReader"/> turns each of these
+/// failures into a <see cref="Reading"/> that says why.
 /// </remarks>
 public interface IFormatReader
 {
@@ -16,6 +17,8 @@ public interface IFormatReader
 
     /// <summary>The blocks of the document in <paramref name="content"/>.</summary>
     /// <exception cref="InvalidDataException">The file is not in this format, or is damaged past reading.</exception>
+    /// <exception cref="System.Xml.XmlException">A part of an Office file is broken XML; the package around it opened, and the part fails when it is first read.</exception>
+    /// <exception cref="DocumentLockedException">The file is protected by a password.</exception>
     /// <exception cref="DocumentTooLargeException">The file unpacks to more than one document may come to.</exception>
     /// <exception cref="OperationCanceledException">The token was cancelled before the reading ended.</exception>
     Task<IReadOnlyList<Block>> ReadAsync(Stream content, CancellationToken cancellationToken = default);

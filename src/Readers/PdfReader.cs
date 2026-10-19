@@ -51,9 +51,9 @@ public sealed class PdfReader : IFormatReader
         {
             return PdfDocument.Open(content);
         }
-        catch (PdfDocumentEncryptedException)
+        catch (PdfDocumentEncryptedException failure)
         {
-            throw new InvalidDataException("the PDF is protected by a password");
+            throw new DocumentLockedException("the PDF is protected by a password", failure);
         }
         catch (Exception failure) when (failure is PdfDocumentFormatException or PdfDocumentStackDepthException)
         {

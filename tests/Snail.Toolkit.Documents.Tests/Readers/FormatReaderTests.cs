@@ -109,7 +109,7 @@ public sealed class FormatReaderTests
     [Fact]
     public async Task Pdf_LockedByAPassword_IsRefusedAsLocked()
     {
-        var refused = await Assert.ThrowsAsync<InvalidDataException>(() => new PdfReader().ReadAsync(new MemoryStream(Samples.LockedPdf())));
+        var refused = await Assert.ThrowsAsync<DocumentLockedException>(() => new PdfReader().ReadAsync(new MemoryStream(Samples.LockedPdf())));
 
         Assert.Equal("the PDF is protected by a password", refused.Message);
     }
