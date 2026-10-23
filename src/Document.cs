@@ -26,5 +26,6 @@ public sealed record Table(int Number, string? Title, int? Part, int Start, IRea
     public CellAddresses? Addresses { get; init; }
 
     /// <summary>The widest row: the number of columns the table is read with.</summary>
-    public int Columns => Rows.Count == 0 ? 0 : Rows.Max(row => row.Count);
+    /// <remarks>Counted once: a table of a million rows is not walked again on every look at its width.</remarks>
+    public int Columns { get; } = Rows.Count == 0 ? 0 : Rows.Max(row => row.Count);
 }

@@ -22,6 +22,9 @@ public static class Markdown
 
         foreach (var block in blocks)
         {
+            if (block is TableBlock grid && Characters(grid) > ReadingLimits.MostDocumentCharacters - text.Length)
+                throw new DocumentTooLargeException($"its text comes to more than {ReadingLimits.MostDocumentCharacters} characters");
+
             if (Written(block) is not { Length: > 0 } written)
                 continue;
 
@@ -117,6 +120,20 @@ public static class Markdown
         IEnumerable<IReadOnlyList<string>> numbered = rows.Select((row, index) => (IReadOnlyList<string>)[$"{addresses.Rows[index]}", .. row]);
 
         return [letters, .. numbered];
+    }
+
+    /// <summary>The characters a table's cells hold, a lower bound of what its grid writes; one table of forty million characters was written whole before the budget saw it.</summary>
+    private static long Characters(TableBlock table)
+    {
+        long characters = 0;
+
+        foreach (var row in table.Rows)
+        {
+            foreach (string cell in row)
+                characters += cell.Length;
+        }
+
+        return characters;
     }
 
     private static string Cell(string text) =>

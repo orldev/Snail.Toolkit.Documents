@@ -13,6 +13,9 @@ public sealed class JsonReader : IFormatReader
 {
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
+    /// <summary>A record that names a key twice is refused as it is parsed; a node that allowed it would throw when the record is first walked.</summary>
+    private static readonly JsonDocumentOptions Strict = new() { AllowDuplicateProperties = false };
+
     /// <inheritdoc/>
     public DocumentKind Format => DocumentKind.Json;
 
@@ -31,7 +34,7 @@ public sealed class JsonReader : IFormatReader
 
         try
         {
-            root = JsonNode.Parse(Decoding.Text(content));
+            root = JsonNode.Parse(Decoding.Text(content), documentOptions: Strict);
         }
         catch (JsonException failure)
         {

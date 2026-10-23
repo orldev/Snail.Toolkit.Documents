@@ -1,4 +1,3 @@
-using System.Xml;
 using Snail.Toolkit.Documents.Readers;
 
 namespace Snail.Toolkit.Documents;
@@ -18,7 +17,7 @@ public sealed class DocumentReader(IEnumerable<IFormatReader> formats, TimeProvi
     public static DocumentReader Every { get; } = new(Formats.Every());
 
     /// <summary>The extensions read, with their dots, in lower case.</summary>
-    public IReadOnlyList<string> Extensions => [.. _formats.SelectMany(format => format.Extensions)];
+    public IReadOnlyList<string> Extensions { get; } = [.. formats.SelectMany(format => format.Extensions)];
 
     /// <summary>The reader a file of this name is read with; null when no reader takes it.</summary>
     public IFormatReader? ReaderFor(string fileName)
@@ -30,9 +29,11 @@ public sealed class DocumentReader(IEnumerable<IFormatReader> formats, TimeProvi
 
     /// <summary>The file read into its document, or why it was not, within <see cref="ReadingLimits.MostReadingSeconds"/>.</summary>
     /// <remarks>
-    /// A file built to keep a parser busy costs half a minute of one thread and no more: the deadline stops it and the
-    /// answer says it was too slow. Cancelled by the caller, the reading throws as any cancelled call does — that is the
-    /// caller's decision, not a fault of the file.
+    /// The format's reader runs on the pool under the deadline, so the caller holds no thread while a file is parsed and gets
+    /// its answer at the deadline whatever the reader is doing: a reader past it is left to stop at its next check of the
+    /// token. A format's library throws what it likes on a damaged file — a bare exception, an argument out of range, a
+    /// state it did not expect — and every such throw is the file's fault, so it is answered as damaged with the library's
+    /// words. Only the caller's cancellation and the machine's memory are not the file's: those propagate.
     /// </remarks>
     public async Task<Reading> ReadAsync(Stream content, string fileName, CancellationToken cancellationToken = default)
     {
@@ -44,9 +45,10 @@ public sealed class DocumentReader(IEnumerable<IFormatReader> formats, TimeProvi
 
         try
         {
-            var blocks = await format.ReadAsync(content, reading.Token).WaitAsync(reading.Token);
+            var blocks = await Task.Run(() => format.ReadAsync(content, reading.Token), reading.Token).WaitAsync(reading.Token);
+            var document = Markdown.Of(format.Format, blocks);
 
-            return Reading.Of(Markdown.Of(format.Format, blocks));
+            return Reading.Of(document);
         }
         catch (OperationCanceledException) when (deadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -60,7 +62,7 @@ public sealed class DocumentReader(IEnumerable<IFormatReader> formats, TimeProvi
         {
             return Reading.Refused(ReadingFailure.Locked, failure.Message);
         }
-        catch (Exception failure) when (failure is InvalidDataException or XmlException)
+        catch (Exception failure) when (failure is not OperationCanceledException and not OutOfMemoryException)
         {
             return Reading.Refused(ReadingFailure.Damaged, failure.Message);
         }

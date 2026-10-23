@@ -49,7 +49,7 @@ A document read: its text as Markdown and where everything in it stands.
 
 ### enum DocumentKind
 
-The kinds of file this server reads.
+The kinds of file this library reads.
 
 | Member | Summary |
 | --- | --- |
@@ -231,6 +231,7 @@ How far one document is read: what a file may unpack to and how long it may take
 | `const int MostListDepth` | Levels a list item is indented at most; Word and PowerPoint number nine, from 0 to 8. |
 | `const int MostReadingSeconds` | Seconds one file may take to read before the reading is stopped and refused. |
 | `const int MostUnpackingRatio` | How many times its own size an Office file may unpack to. |
+| `const long MostPicturePixels` | Pixels a scanned page's picture may have to be decoded; a larger one comes back without a picture. |
 | `const long MostUnpackedBytes` | Bytes an Office file may unpack to, all its parts together. |
 
 ### class ScannedPage
@@ -292,7 +293,7 @@ A table, its first row the header as the document has it.
 
 ### class DelimitedReader
 
-Values separated by commas, semicolons or tabs: one table, its first line the header.
+Values separated by commas or semicolons, a .csv: one table, its first line the header.
 
 | Member | Summary |
 | --- | --- |
@@ -384,6 +385,17 @@ A PowerPoint presentation: every slide a part titled by its title, then its text
 | `DocumentKind Format { get; }` | The format this reader reads. |
 | `IReadOnlyList<string> Extensions { get; }` | The file extensions it takes, with their dots, lower case. |
 | `PowerPointReader()` |  |
+| `Task<IReadOnlyList<Block>> ReadAsync(Stream content, CancellationToken cancellationToken = default)` | The blocks of the document in `content`. |
+
+### class TabSeparatedReader
+
+Values separated by tabs, a .tsv: one table, its first line the header.
+
+| Member | Summary |
+| --- | --- |
+| `DocumentKind Format { get; }` | The format this reader reads. |
+| `IReadOnlyList<string> Extensions { get; }` | The file extensions it takes, with their dots, lower case. |
+| `TabSeparatedReader()` |  |
 | `Task<IReadOnlyList<Block>> ReadAsync(Stream content, CancellationToken cancellationToken = default)` | The blocks of the document in `content`. |
 
 ### class WordReader

@@ -22,8 +22,9 @@ public static class ScannedPages
     /// <summary>The picture of each named page of the PDF, in a form a model can be sent; null where it cannot be decoded.</summary>
     /// <remarks>
     /// Fax and JBIG2 encodings, common in black-and-white scans, have no managed decoder, and such a page comes back
-    /// without a picture rather than as bytes a model cannot look at. A decoder throws on input it does not expect, and
-    /// one broken image costs its own page, never the pictures of the others.
+    /// without a picture rather than as bytes a model cannot look at; so does a picture past
+    /// <see cref="ReadingLimits.MostPicturePixels"/>, which would be decoded into more memory than a page may take. A
+    /// decoder throws on input it does not expect, and one broken image costs its own page, never the pictures of the others.
     /// </remarks>
     /// <exception cref="InvalidDataException">The file is not a PDF, or is damaged past opening.</exception>
     /// <exception cref="DocumentLockedException">The PDF is protected by a password.</exception>
@@ -58,7 +59,7 @@ public static class ScannedPages
     {
         var image = images.MaxBy(candidate => candidate.BoundingBox.Width * candidate.BoundingBox.Height);
 
-        if (image is null)
+        if (image is null || (long)image.WidthInSamples * image.HeightInSamples > ReadingLimits.MostPicturePixels)
             return null;
 
         if (image.TryGetPng(out var png))

@@ -1,3 +1,4 @@
+using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -9,6 +10,9 @@ namespace Snail.Toolkit.Documents.Readers;
 /// <remarks>
 /// The speaker's notes are read too and marked as notes: they often hold the half of the talk the slide leaves
 /// out, and a model asked what the presentation says would otherwise answer from the bullets alone.
+/// Nothing of a slide is built as a tree but a placeholder's type and a paragraph's properties: shapes, paragraphs
+/// and tables are read as the part reader's events, their text gathered piece by piece under the budget of
+/// characters, so what the heap holds is the budget — one shape of a hundred million letters stood at 339 MB as a tree.
 /// </remarks>
 public sealed class PowerPointReader : IFormatReader
 {
@@ -28,88 +32,218 @@ public sealed class PowerPointReader : IFormatReader
 
         var presentation = deck.PresentationPart ?? throw new InvalidDataException("the file holds no presentation");
         List<Block> blocks = [];
+        var budget = new CharacterBudget();
         int number = 0;
 
-        foreach (var id in presentation.Presentation?.SlideIdList?.Elements<P.SlideId>() ?? [])
+        foreach (var id in Listed(presentation, cancellationToken))
         {
-            cancellationToken.ThrowIfCancellationRequested();
             number++;
 
-            if (id.RelationshipId?.Value is not { } relationship || presentation.GetPartById(relationship) is not SlidePart slide)
+            if (id.RelationshipId?.Value is not { } relationship)
                 continue;
 
-            var shapes = slide.Slide?.CommonSlideData?.ShapeTree;
-            var title = shapes?.Descendants<P.Shape>().FirstOrDefault(IsTitle);
+            if (!presentation.TryGetPartById(relationship, out var part))
+                throw new InvalidDataException($"the presentation lists slide {number} under a relationship it does not hold");
 
-            blocks.Add(new PartStart(PartKind.Slide, number, title is null ? null : Text(title.TextBody)));
-
-            if (shapes is not null)
-                blocks.AddRange(Blocks(shapes));
-
-            if (slide.NotesSlidePart?.NotesSlide?.CommonSlideData?.ShapeTree is { } notes
-                && string.Join('\n', notes.Descendants<P.Shape>().Where(IsBody).Select(shape => Text(shape.TextBody))) is { Length: > 0 } said)
-                blocks.Add(new Paragraph($"Notes: {said}"));
+            if (part is SlidePart slide)
+                blocks.AddRange(Blocks(slide, number, budget, cancellationToken));
         }
 
         return blocks;
     }
 
-    private static IEnumerable<Block> Blocks(OpenXmlElement container)
+    /// <summary>The slides the presentation lists, in order, one entry of the list built at a time.</summary>
+    /// <remarks>
+    /// The list is the presentation's table of contents, a few lines in a real file; two million entries, sixty-five megabytes the zip
+    /// limits let through, stood at 779 MB as a tree before the first slide was looked up. Read entry by entry, every slide's heading is
+    /// counted against the budget of characters as it is met.
+    /// </remarks>
+    private static IEnumerable<P.SlideId> Listed(PresentationPart presentation, CancellationToken cancellationToken)
     {
-        foreach (var element in container.Elements())
+        using var reader = OpenXmlReader.Create(presentation);
+
+        while (reader.Read())
         {
-            switch (element)
-            {
-                case P.Shape shape when !IsTitle(shape) && shape.TextBody is { } body:
-                    foreach (var paragraph in body.Elements<A.Paragraph>())
-                    {
-                        if (Text(paragraph) is not { Length: > 0 } text)
-                            continue;
+            if (!reader.IsStartElement || reader.ElementType != typeof(P.SlideId))
+                continue;
 
-                        yield return IsBody(shape)
-                            ? new ListItem(paragraph.ParagraphProperties?.Level?.Value ?? 0, text, IsOrdered: false)
-                            : new Paragraph(text);
-                    }
+            cancellationToken.ThrowIfCancellationRequested();
 
-                    break;
-                case P.GraphicFrame frame when frame.Descendants<A.Table>().FirstOrDefault() is { } table:
-                    yield return new TableBlock(null, Rows(table));
-                    break;
-                case P.GroupShape group:
-                    foreach (var inner in Blocks(group))
-                        yield return inner;
-                    break;
-            }
+            yield return (P.SlideId)reader.LoadCurrentElement()!;
         }
     }
 
-    private static IReadOnlyList<IReadOnlyList<string>> Rows(A.Table table) =>
-    [
-        .. table.Elements<A.TableRow>()
-            .Select(row => (IReadOnlyList<string>)[.. row.Elements<A.TableCell>().Select(cell => Text(cell.TextBody))])
-    ];
+    /// <summary>The blocks of one slide: its start under its title, its points and tables in order, then the speaker's notes.</summary>
+    private static IEnumerable<Block> Blocks(SlidePart slide, int number, CharacterBudget budget, CancellationToken cancellationToken)
+    {
+        string? title = null;
+        List<Block> content = [];
 
-    private static bool IsTitle(P.Shape shape) =>
-        Placeholder(shape) is { } type && (type == P.PlaceholderValues.Title || type == P.PlaceholderValues.CenteredTitle);
-
-    /// <summary>A placeholder of the layout's body, whose lines are the slide's points; a placeholder with no type is one.</summary>
-    private static bool IsBody(P.Shape shape) =>
-        shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape is { } placeholder
-        && (placeholder.Type?.Value is null || placeholder.Type.Value == P.PlaceholderValues.Body || placeholder.Type.Value == P.PlaceholderValues.Object);
-
-    private static P.PlaceholderValues? Placeholder(P.Shape shape) =>
-        shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value;
-
-    private static string Text(OpenXmlElement? element) =>
-        element is null
-            ? string.Empty
-            : string.Join('\n', element.Descendants<A.Paragraph>().Select(Text).Where(line => line.Length > 0));
-
-    private static string Text(A.Paragraph paragraph) =>
-        string.Concat(paragraph.Descendants().Select(piece => piece switch
+        foreach (var figure in Figures(slide, budget, cancellationToken))
         {
-            A.Text text => text.Text,
-            A.Break => "\n",
-            _ => string.Empty
-        })).Trim();
+            if (figure.IsTitle)
+                title ??= Said(figure);
+            else if (figure.Rows is { } rows)
+                content.Add(new TableBlock(null, rows));
+            else
+                content.AddRange(Points(figure));
+        }
+
+        var start = new PartStart(PartKind.Slide, number, title);
+        budget.Count(Markdown.PartLine(start));
+
+        yield return start;
+
+        foreach (var block in content)
+            yield return block;
+
+        if (Notes(slide.NotesSlidePart, budget, cancellationToken) is { Length: > 0 } said)
+            yield return new Paragraph($"Notes: {said}");
+    }
+
+    /// <summary>The lines of a figure as blocks: points of the slide when the figure is the layout's body, paragraphs otherwise.</summary>
+    private static IEnumerable<Block> Points(Figure figure)
+    {
+        foreach (var (level, text) in figure.Lines)
+        {
+            yield return figure.IsBody
+                ? new ListItem(level, text, IsOrdered: false)
+                : new Paragraph(text);
+        }
+    }
+
+    private static string Notes(NotesSlidePart? notes, CharacterBudget budget, CancellationToken cancellationToken)
+    {
+        if (notes is null)
+            return string.Empty;
+
+        var said = Figures(notes, budget, cancellationToken).Where(figure => figure.IsBody).Select(Said);
+
+        return string.Join('\n', said);
+    }
+
+    /// <summary>The text of a figure, a line a paragraph.</summary>
+    private static string Said(Figure figure) =>
+        string.Join('\n', figure.Lines.Select(line => line.Text));
+
+    /// <summary>The shapes and tables of a part in order, each read to its end as the reader meets it; shapes in a group arrive as their own.</summary>
+    private static IEnumerable<Figure> Figures(OpenXmlPart part, CharacterBudget budget, CancellationToken cancellationToken)
+    {
+        using var reader = OpenXmlReader.Create(part);
+
+        while (reader.Read())
+        {
+            if (!reader.IsStartElement)
+                continue;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (reader.ElementType == typeof(P.Shape))
+                yield return Shaped(reader, budget);
+            else if (reader.ElementType == typeof(A.Table))
+                yield return new Figure(IsTitle: false, IsBody: false, [], Rows(reader, budget));
+        }
+    }
+
+    /// <summary>The shape the reader stands on, read to its end: what placeholder of the layout it is, and its paragraphs' level and text.</summary>
+    /// <remarks>A placeholder of the layout's body holds the slide's points; a placeholder with no type is one too.</remarks>
+    private static Figure Shaped(OpenXmlReader reader, CharacterBudget budget)
+    {
+        int depth = reader.Depth;
+        bool isPlaceholder = false;
+        P.PlaceholderValues? type = null;
+        List<(int Level, string Text)> lines = [];
+
+        while (reader.Read() && !IsEndAt(reader, depth))
+        {
+            if (!reader.IsStartElement)
+                continue;
+
+            if (reader.ElementType == typeof(P.PlaceholderShape) && reader.LoadCurrentElement() is P.PlaceholderShape placeholder)
+            {
+                isPlaceholder = true;
+                type = placeholder.Type?.Value;
+            }
+            else if (reader.ElementType == typeof(A.Paragraph) && Line(reader, budget) is { Text.Length: > 0 } line)
+            {
+                lines.Add(line);
+            }
+        }
+
+        bool isTitle = type is { } placed && (placed == P.PlaceholderValues.Title || placed == P.PlaceholderValues.CenteredTitle);
+        bool isBody = isPlaceholder && (type is null || type == P.PlaceholderValues.Body || type == P.PlaceholderValues.Object);
+
+        return new Figure(isTitle, isBody, lines, null);
+    }
+
+    /// <summary>The paragraph the reader stands on, read to its end: its level and its text, pieces and line breaks gathered under the budget.</summary>
+    private static (int Level, string Text) Line(OpenXmlReader reader, CharacterBudget budget)
+    {
+        int depth = reader.Depth;
+        int level = 0;
+        var text = new StringBuilder();
+
+        while (reader.Read() && !IsEndAt(reader, depth))
+        {
+            if (!reader.IsStartElement)
+                continue;
+
+            if (reader.ElementType == typeof(A.ParagraphProperties) && reader.Depth == depth + 1 && reader.LoadCurrentElement() is A.ParagraphProperties properties)
+            {
+                level = properties.Level?.Value ?? 0;
+            }
+            else if (reader.ElementType == typeof(A.Text))
+            {
+                string piece = reader.GetText();
+                budget.Count(piece);
+                text.Append(piece);
+            }
+            else if (reader.ElementType == typeof(A.Break))
+            {
+                text.Append('\n');
+            }
+        }
+
+        return (level, text.ToString().Trim());
+    }
+
+    /// <summary>The rows of the table the reader stands on, read to its end, each cell its lines.</summary>
+    private static IReadOnlyList<IReadOnlyList<string>> Rows(OpenXmlReader reader, CharacterBudget budget)
+    {
+        int depth = reader.Depth;
+        List<IReadOnlyList<string>> rows = [];
+        List<string> cells = [];
+
+        while (reader.Read() && !IsEndAt(reader, depth))
+        {
+            if (reader.IsStartElement && reader.ElementType == typeof(A.TableRow) && reader.Depth == depth + 1)
+                cells = [];
+            else if (reader.IsStartElement && reader.ElementType == typeof(A.TableCell) && reader.Depth == depth + 2)
+                cells.Add(CellText(reader, budget));
+            else if (reader.IsEndElement && reader.ElementType == typeof(A.TableRow) && reader.Depth == depth + 1)
+                rows.Add(cells);
+        }
+
+        return rows;
+    }
+
+    private static string CellText(OpenXmlReader reader, CharacterBudget budget)
+    {
+        int depth = reader.Depth;
+        List<string> lines = [];
+
+        while (reader.Read() && !IsEndAt(reader, depth))
+        {
+            if (reader.IsStartElement && reader.ElementType == typeof(A.Paragraph) && Line(reader, budget) is { Text.Length: > 0 } line)
+                lines.Add(line.Text);
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    private static bool IsEndAt(OpenXmlReader reader, int depth) =>
+        reader.IsEndElement && reader.Depth == depth;
+
+    /// <summary>A shape or a table of a slide as read: whether it is the layout's title or body, its lines, or its rows when it is a table.</summary>
+    private sealed record Figure(bool IsTitle, bool IsBody, IReadOnlyList<(int Level, string Text)> Lines, IReadOnlyList<IReadOnlyList<string>>? Rows);
 }

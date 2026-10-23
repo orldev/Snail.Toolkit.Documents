@@ -353,3 +353,9 @@ override Snail.Toolkit.Documents.Reading.ToString() -> string!
 override Snail.Toolkit.Documents.CodeBlock.ToString() -> string!
 override Snail.Toolkit.Documents.CellAddresses.ToString() -> string!
 override Snail.Toolkit.Documents.TableBlock.ToString() -> string!
+Snail.Toolkit.Documents.Readers.TabSeparatedReader
+Snail.Toolkit.Documents.Readers.TabSeparatedReader.TabSeparatedReader() -> void
+Snail.Toolkit.Documents.Readers.TabSeparatedReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Snail.Toolkit.Documents.Readers.TabSeparatedReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.TabSeparatedReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
+const Snail.Toolkit.Documents.ReadingLimits.MostPicturePixels = 50000000 -> long

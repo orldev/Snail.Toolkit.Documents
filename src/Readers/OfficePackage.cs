@@ -31,8 +31,13 @@ internal static class OfficePackage
     /// <summary>Refuses a package whose parts unpack past the limits, before the SDK unpacks any of them.</summary>
     /// <remarks>
     /// An Office file is a zip, and a zip of a few kilobytes can unpack to gigabytes, which the SDK would try. The sizes the
-    /// zip declares are what its entries are read up to, so they are read from its directory and nothing is unpacked. A
-    /// file that is not a zip at all — an encrypted Office file is a compound document — is left for the SDK to name.
+    /// zip's directory declares are read first and refuse a truthful bomb for nothing; but a directory is a claim, and a bomb
+    /// that claimed a thousand bytes for sixty-four megabytes of zeros passed, and the SDK buffered 47 MB of it before the
+    /// zeros failed as XML. So every entry is then inflated into nothing and counted, and the count is refused the moment it
+    /// passes a limit; an entry that holds more than its directory declares is refused by the zip reader itself within the
+    /// first chunk read. Either way the refusal costs one chunk, and a real document one extra inflation, which the Word and
+    /// Excel benchmarks did not register. A file that is not a zip at all — an encrypted Office file is a compound document —
+    /// is left for the SDK to name.
     /// </remarks>
     private static void Measure(Stream package)
     {
@@ -40,13 +45,38 @@ internal static class OfficePackage
             return;
 
         long packed = package.Length;
-        long unpacked;
 
         using (var archive = new ZipArchive(package, ZipArchiveMode.Read, leaveOpen: true))
-            unpacked = archive.Entries.Sum(entry => entry.Length);
+        {
+            Refuse(archive.Entries.Sum(entry => entry.Length), packed);
+
+            long unpacked = 0;
+
+            foreach (var entry in archive.Entries)
+                unpacked = Unpacked(entry, unpacked, packed);
+        }
 
         package.Position = 0;
+    }
 
+    /// <summary>The bytes unpacked so far after this entry, each piece of it refused as soon as the total passes a limit.</summary>
+    private static long Unpacked(ZipArchiveEntry entry, long before, long packed)
+    {
+        Span<byte> sink = stackalloc byte[16 * 1024];
+        long total = before;
+        using var inflated = entry.Open();
+
+        for (int read = inflated.Read(sink); read > 0; read = inflated.Read(sink))
+        {
+            total += read;
+            Refuse(total, packed);
+        }
+
+        return total;
+    }
+
+    private static void Refuse(long unpacked, long packed)
+    {
         if (unpacked > ReadingLimits.MostUnpackedBytes || unpacked > packed * ReadingLimits.MostUnpackingRatio)
             throw new DocumentTooLargeException($"the file of {packed} bytes would unpack to {unpacked}");
     }

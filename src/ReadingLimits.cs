@@ -43,6 +43,14 @@ public static class ReadingLimits
     /// </remarks>
     public const int MostUnpackingRatio = 100;
 
+    /// <summary>Pixels a scanned page's picture may have to be decoded; a larger one comes back without a picture.</summary>
+    /// <remarks>
+    /// A page is decoded to a PNG in memory, several bytes a pixel: an A4 page scanned at 600 dpi is 35 million pixels and some
+    /// 140 MB decoded, at 1200 dpi four times that, and a PDF may name a picture of any size at all. Fifty million pixels take
+    /// every scan a person makes and leave the one made to exhaust memory undecoded.
+    /// </remarks>
+    public const long MostPicturePixels = 50_000_000;
+
     /// <summary>Levels a list item is indented at most; Word and PowerPoint number nine, from 0 to 8.</summary>
     /// <remarks>A level is an integer in the file, and indenting by it would turn one item into a line of millions of spaces.</remarks>
     public const int MostListDepth = 8;

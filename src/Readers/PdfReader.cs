@@ -27,12 +27,14 @@ public sealed class PdfReader : IFormatReader
     {
         using var pdf = Opened(content);
         List<Block> blocks = [];
+        var budget = new CharacterBudget();
 
         foreach (var page in pdf.GetPages())
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             string text = ContentOrderTextExtractor.GetText(page).ReplaceLineEndings("\n");
+            budget.Count(text);
             bool isScanned = string.IsNullOrWhiteSpace(text) && page.GetImages().Any();
 
             blocks.Add(new PartStart(PartKind.Page, page.Number, null, isScanned));

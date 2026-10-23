@@ -12,7 +12,8 @@ namespace Snail.Toolkit.Documents.Readers;
 /// </remarks>
 public sealed class HtmlReader : IFormatReader
 {
-    private static readonly HashSet<string> Skipped = new(StringComparer.OrdinalIgnoreCase) { "script", "style", "noscript", "template", "svg", "nav", "iframe", "head", "form", "button" };
+    /// <summary>Elements whose content is never the page's text; a form is not among them, since a page written by ASP.NET WebForms is one form.</summary>
+    private static readonly HashSet<string> Skipped = new(StringComparer.OrdinalIgnoreCase) { "script", "style", "noscript", "template", "svg", "nav", "iframe", "head", "button" };
 
     private static readonly HashSet<string> Inline = new(StringComparer.OrdinalIgnoreCase) { "a", "span", "strong", "b", "em", "i", "u", "code", "small", "sub", "sup", "mark", "abbr", "time", "label", "br", "img", "s", "q", "cite", "kbd", "var" };
 

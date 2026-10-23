@@ -14,8 +14,18 @@ internal static class Decoding
 
     static Decoding() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+    /// <summary>The text of the stream from where it stands, in the encoding its bytes say.</summary>
+    /// <remarks>
+    /// UTF-8 and Windows-1251 give at least one character per byte and UTF-16 one per two, so a file of more than twice the
+    /// budget of characters in bytes cannot fit whatever it is encoded in and is refused before a byte is decoded: decoding
+    /// a 50 MB text file to refuse it cost 809 MB. A file between the budget and twice it is decoded and refused by the writer.
+    /// </remarks>
+    /// <exception cref="DocumentTooLargeException">The stream holds more than twice <see cref="ReadingLimits.MostDocumentCharacters"/> bytes.</exception>
     public static string Text(Stream content)
     {
+        if (content.CanSeek && content.Length - content.Position > 2L * ReadingLimits.MostDocumentCharacters)
+            throw new DocumentTooLargeException($"a text file of {content.Length - content.Position} bytes holds more than {ReadingLimits.MostDocumentCharacters} characters");
+
         var bytes = Bytes(content);
 
         if (Marked(bytes) is { } marked)

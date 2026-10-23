@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -224,6 +226,16 @@ internal static class Samples
         return builder.Build();
     }
 
+    /// <summary>A PDF of one page holding one grey picture of <paramref name="width"/> by <paramref name="height"/> pixels, written as a PNG by hand.</summary>
+    /// <remarks>Rows of zeros deflate to almost nothing, so the file is small and the picture is as large as its dimensions say.</remarks>
+    public static byte[] PdfOfOneHugePicture(int width, int height)
+    {
+        var builder = new PdfDocumentBuilder();
+        builder.AddPage(UglyToad.PdfPig.Content.PageSize.A4).AddPng(GreyPng(width, height), new UglyToad.PdfPig.Core.PdfRectangle(20, 20, 575, 820));
+
+        return builder.Build();
+    }
+
     /// <summary>A PDF locked by a password nobody here knows: its trailer names a standard security handler that rejects the empty one.</summary>
     public static byte[] LockedPdf()
     {
@@ -241,6 +253,61 @@ internal static class Samples
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         return Encoding.GetEncoding(1251).GetBytes("Город;Сумма\nМосква;\"1;5\"\nКазань;7\n");
+    }
+
+    private static byte[] GreyPng(int width, int height)
+    {
+        using var png = new MemoryStream();
+        png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+        byte[] header = new byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(header, width);
+        BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), height);
+        header[8] = 8;
+        Chunk(png, "IHDR", header);
+
+        using var pixels = new MemoryStream();
+
+        using (var deflated = new ZLibStream(pixels, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            byte[] row = new byte[width + 1];
+
+            for (int line = 0; line < height; line++)
+                deflated.Write(row);
+        }
+
+        Chunk(png, "IDAT", pixels.ToArray());
+        Chunk(png, "IEND", []);
+
+        return png.ToArray();
+    }
+
+    private static void Chunk(Stream png, string type, byte[] data)
+    {
+        byte[] length = new byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+        byte[] typed = [.. Encoding.ASCII.GetBytes(type), .. data];
+        byte[] crc = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(crc, Crc32(typed));
+
+        png.Write(length);
+        png.Write(typed);
+        png.Write(crc);
+    }
+
+    private static uint Crc32(byte[] bytes)
+    {
+        uint crc = 0xFFFFFFFF;
+
+        foreach (byte value in bytes)
+        {
+            crc ^= value;
+
+            for (int bit = 0; bit < 8; bit++)
+                crc = (crc & 1) == 1 ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        }
+
+        return ~crc;
     }
 
     /// <summary>The smallest PNG there is: one pixel.</summary>

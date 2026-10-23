@@ -13,6 +13,7 @@ public static class Formats
         new PdfReader(),
         new HtmlReader(),
         new DelimitedReader(),
+        new TabSeparatedReader(),
         new JsonReader(),
         new MarkdownReader(),
         new PlainTextReader()

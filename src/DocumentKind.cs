@@ -1,6 +1,6 @@
 namespace Snail.Toolkit.Documents;
 
-/// <summary>The kinds of file this server reads.</summary>
+/// <summary>The kinds of file this library reads.</summary>
 public enum DocumentKind
 {
     /// <summary>A Word document, .docx.</summary>
