@@ -7,10 +7,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>0.2.0</VersionPrefix>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/orldev/Snail.Toolkit.Documents</RepositoryUrl>
     <PackageProjectUrl>https://github.com/orldev/Snail.Toolkit.Documents</PackageProjectUrl>
+    <!-- The last release on NuGet: a pack fails on any change that would break a user of it. Raised with each release. -->
+    <SnailPackageBaseline>0.1.0</SnailPackageBaseline>
   </PropertyGroup>
 
 </Project>
