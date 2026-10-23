@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
 using UglyToad.PdfPig.Writer;
@@ -99,6 +102,41 @@ public static class Files
             }
 
             workbook.Workbook.AppendChild(sheets);
+        }
+
+        return stream.ToArray();
+    }
+
+    /// <summary>A deck of twenty slides: a title, six points on two levels, a table of six rows and the speaker's notes each.</summary>
+    public static byte[] Deck()
+    {
+        using var stream = new MemoryStream();
+
+        using (var deck = PresentationDocument.Create(stream, DocumentFormat.OpenXml.PresentationDocumentType.Presentation))
+        {
+            var presentation = deck.AddPresentationPart();
+            var ids = new P.SlideIdList();
+
+            for (uint number = 1; number <= 20; number++)
+            {
+                var slide = presentation.AddNewPart<SlidePart>();
+                var table = new A.Table(CellRow("Month", "Planned", "Done"));
+
+                for (int row = 1; row <= 6; row++)
+                    table.Append(CellRow($"Month {row}", (row * 100).ToString(CultureInfo.InvariantCulture), (row * 97).ToString(CultureInfo.InvariantCulture)));
+
+                slide.Slide = new P.Slide(new P.CommonSlideData(new P.ShapeTree(
+                    Placeholder(P.PlaceholderValues.Title, Text($"Slide {number}: what the week brought")),
+                    Placeholder(P.PlaceholderValues.Body, Text("first point", 0), Text("a detail", 1), Text("second point", 0), Text("another detail", 1), Text("third point", 0), Text("last detail", 1)),
+                    new P.GraphicFrame(new A.Graphic(new A.GraphicData(table))))));
+
+                slide.AddNewPart<NotesSlidePart>().NotesSlide = new P.NotesSlide(new P.CommonSlideData(new P.ShapeTree(
+                    Placeholder(P.PlaceholderValues.Body, Text($"Say what slide {number} leaves out, and name the risks.")))));
+
+                ids.Append(new P.SlideId { Id = 255 + number, RelationshipId = presentation.GetIdOfPart(slide) });
+            }
+
+            presentation.Presentation = new P.Presentation(ids);
         }
 
         return stream.ToArray();
@@ -213,6 +251,21 @@ public static class Files
     /// <summary>Two thousand JSON records that each name a key of their own: twenty-three kilobytes on disk.</summary>
     public static byte[] Keys() =>
         Encoding.UTF8.GetBytes($"[{string.Join(',', Enumerable.Range(0, 2_000).Select(index => $$"""{"k{{index}}":1}"""))}]");
+
+    private static P.Shape Placeholder(P.PlaceholderValues type, params A.Paragraph[] paragraphs) =>
+        new(
+            new P.NonVisualShapeProperties(
+                new P.NonVisualDrawingProperties { Id = 2, Name = type.ToString() },
+                new P.NonVisualShapeDrawingProperties(),
+                new P.ApplicationNonVisualDrawingProperties(new P.PlaceholderShape { Type = type })),
+            new P.ShapeProperties(),
+            new P.TextBody([new A.BodyProperties(), .. paragraphs]));
+
+    private static A.Paragraph Text(string text, int level = 0) =>
+        new(new A.ParagraphProperties { Level = level }, new A.Run(new A.Text(text)));
+
+    private static A.TableRow CellRow(params string[] cells) =>
+        new([.. cells.Select(cell => (OpenXmlElement)new A.TableCell(new A.TextBody(new A.BodyProperties(), Text(cell))))]);
 
     private static W.Paragraph Paragraph(string text, W.ParagraphProperties? properties = null) =>
         properties is null

@@ -21,6 +21,8 @@ public class ReadingBenchmarks
 
     private readonly PdfReader _pdf = new();
 
+    private readonly PowerPointReader _powerPoint = new();
+
     private byte[] _report = [];
 
     private byte[] _ledger = [];
@@ -35,6 +37,8 @@ public class ReadingBenchmarks
 
     private byte[] _pages = [];
 
+    private byte[] _deck = [];
+
     [GlobalSetup]
     public void Setup()
     {
@@ -45,6 +49,7 @@ public class ReadingBenchmarks
         _export = Files.Export();
         _records = Files.Records();
         _pages = Files.Pages();
+        _deck = Files.Deck();
     }
 
     /// <summary>A Word report of twenty sections read as Markdown.</summary>
@@ -74,6 +79,10 @@ public class ReadingBenchmarks
     /// <summary>A PDF of twenty pages of text read as Markdown.</summary>
     [Benchmark]
     public Task<int> Pdf() => Read(_pdf, _pages);
+
+    /// <summary>A deck of twenty slides with points, a table and notes read as Markdown.</summary>
+    [Benchmark]
+    public Task<int> PowerPoint() => Read(_powerPoint, _deck);
 
     private static async Task<int> Read(IFormatReader reader, byte[] file)
     {
