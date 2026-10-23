@@ -21,7 +21,8 @@ else
 | PowerPoint | `.pptx` `.pptm` | a part per slide: its title, text, tables and the speaker's notes |
 | PDF | `.pdf` | a part per page, its text layer in reading order; a page without one is marked as a scan |
 | HTML | `.html` `.htm` | headings, paragraphs, lists, tables; scripts and styles left out |
-| CSV | `.csv` `.tsv` | one table, the separator taken from the first line |
+| CSV | `.csv` | one table, the separator taken from the first line |
+| TSV | `.tsv` | one table, split by tabs |
 | JSON | `.json` | a list of flat records as a table, anything else as indented JSON |
 | Markdown, text | `.md` `.markdown` `.txt` `.text` `.log` | as written |
 
@@ -48,15 +49,15 @@ A sheet's table keeps where its cells stood: `Table.Addresses.Of(row, column)` i
 
 ## Failures are answers
 
-`ReadAsync` throws only when its caller cancels it. Every other way a file fails comes back as a `Reading` with the
-reason in the reader's words:
+`ReadAsync` throws only when its caller cancels it. Every other way a file fails — including whatever a format's own
+library throws on a damaged one — comes back as a `Reading` with the reason in the reader's words:
 
 | `ReadingFailure` | When |
 | --- | --- |
 | `UnknownFormat` | no reader takes a file of this name |
 | `Damaged` | the file is damaged, or is not what its name says |
 | `Locked` | the file is protected by a password |
-| `TooLarge` | the file unpacks past `ReadingLimits`: 20 million characters, a million cells in one table, 256 MB unpacked or a hundred times its size for an Office file |
+| `TooLarge` | the file unpacks past `ReadingLimits`: 20 million characters, a million cells in one table, 256 MB unpacked or a hundred times its size for an Office file, or a workbook's styles past a million formats |
 | `TooSlow` | reading took longer than 30 seconds |
 
 The limits hold whatever the size of the file: a workbook of 11 kB can come to 98 million characters, and a zip of a
@@ -71,7 +72,8 @@ int[] scans = [.. document.Parts.Where(part => part.IsScanned).Select(part => pa
 IReadOnlyList<ScannedPage> pages = ScannedPages.Pictures(File.OpenRead("scan.pdf"), scans);
 ```
 
-Each page comes back as a PNG or a JPEG, or without a picture when no managed decoder opens it (fax and JBIG2 scans).
+Each page comes back as a PNG or a JPEG, or without a picture when no managed decoder opens it (fax and JBIG2 scans) or
+when it is past `ReadingLimits.MostPicturePixels`, fifty million pixels.
 
 ## In a container
 
