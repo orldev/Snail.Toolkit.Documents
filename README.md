@@ -6,8 +6,8 @@ and tables — in .NET, with no Office, no LibreOffice and no network.
 ```csharp
 var reading = await DocumentReader.Every.ReadAsync(File.OpenRead("invoice.pdf"), "invoice.pdf");
 
-if (reading.IsRead)
-    Console.WriteLine(reading.Document!.Text);
+if (reading.TryGetDocument(out var document))
+    Console.WriteLine(document.Text);
 else
     Console.WriteLine($"{reading.Failure}: {reading.Reason}");
 ```
@@ -32,10 +32,11 @@ a Russian Excel saves a CSV.
 ## A document
 
 `Document` is the whole text as Markdown and where everything in it stands: `Parts` (pages, sheets, slides, each with
-where its text starts and ends), `Headings` and `Tables`. The positions are offsets into `Text`, taken in the same pass
+where its text starts and ends), `Sections` (each heading with the stretch of text it opens, to the next heading of
+its level or above) and `Tables`. The positions are offsets into `Text`, taken in the same pass
 that wrote it, so a page a caller finds in the outline is the page it reads.
 
-A sheet's table keeps where its cells stood: `Table.Addresses.Of(row, column)` is `B7`, and the Markdown shows it.
+A sheet's table keeps where its cells stood: `Table.Addresses.At(row, column)` is `B7`, and the Markdown shows it.
 
 ```
 ## Sheet 1: Invoices
