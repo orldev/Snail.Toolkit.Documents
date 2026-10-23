@@ -2,10 +2,15 @@
 
   <!--
     The library in a native app: IsAotCompatible sees warnings only, and a library can be clean and still bind nothing
-    under Native AOT. The shared CI publishes this probe with Native AOT and runs it; it must exit 0.
+    under Native AOT. The shared CI publishes this probe with Native AOT and runs it; it must exit 0. It reads every
+    format the library reads, since each format binds a library of its own.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/Snail.Toolkit.Documents.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="invoices.xls" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
