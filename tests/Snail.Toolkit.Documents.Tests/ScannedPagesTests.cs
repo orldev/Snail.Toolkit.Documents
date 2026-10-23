@@ -29,12 +29,14 @@ public sealed class ScannedPagesTests
     /// <summary>
     /// A PDF may name a picture of any size, and decoding it costs several bytes a pixel: a page of fifty-six million pixels comes back
     /// without a picture for the price of parsing the page, not of decoding 56 MB. The picture is measured on this thread so that only
-    /// its decoding is counted.
+    /// its decoding is counted, and after a small PDF is read: the first PDF a process opens builds PdfPig's tables, 30 MB once, and a
+    /// run that put this test first counted them as the page's.
     /// </summary>
     [Fact]
     public void Pictures_PageWhosePictureIsPastThePixelBudget_ComesBackWithoutAPictureCheaply()
     {
         byte[] pdf = Samples.PdfOfOneHugePicture(8_000, 7_000);
+        _ = ScannedPages.Pictures(new MemoryStream(Samples.Pdf()), [1]);
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         var page = Assert.Single(ScannedPages.Pictures(new MemoryStream(pdf), [1]));
