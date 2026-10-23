@@ -13,13 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Support/invoices.xls" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="invoices.xls" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="System.Text.Json.Nodes" />
-    <Using Include="Snail.Toolkit.Documents.Tests.Support" />
   </ItemGroup>
 
 </Project>

@@ -10,7 +10,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
-namespace Snail.Toolkit.Documents.Tests.Support;
+namespace Snail.Toolkit.Documents.Tests;
 
 /// <summary>Real files of every format, built the way their own programs write them, small enough to read at a glance.</summary>
 internal static class Samples
@@ -144,7 +144,7 @@ internal static class Samples
     /// written once by xlwt 1.3.0 and is kept beside the tests.
     /// </summary>
     public static byte[] OldExcel() =>
-        File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Support", "invoices.xls"));
+        File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "invoices.xls"));
 
     /// <summary>A presentation of one slide: a title, two points one level apart, a table and the speaker's notes.</summary>
     public static byte[] Slides()
