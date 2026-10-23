@@ -17,7 +17,7 @@ public sealed class JsonReader : IFormatReader
     private static readonly JsonDocumentOptions Strict = new() { AllowDuplicateProperties = false };
 
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Json;
+    public DocumentKind Kind => DocumentKind.Json;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".json"];

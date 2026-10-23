@@ -13,8 +13,8 @@ public static class DocumentReadingRegistration
         /// <remarks>A program that reads fewer formats registers its own readers and a <see cref="DocumentReader"/> over them instead.</remarks>
         public IServiceCollection AddDocumentReading()
         {
-            foreach (var format in Formats.Every())
-                services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IFormatReader), format));
+            foreach (var reader in FormatReaders.Every())
+                services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IFormatReader), reader));
 
             services.TryAddSingleton(provider => new DocumentReader(provider.GetServices<IFormatReader>(), provider.GetService<TimeProvider>()));
 

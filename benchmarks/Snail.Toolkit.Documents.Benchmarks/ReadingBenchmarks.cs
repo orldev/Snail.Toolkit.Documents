@@ -15,7 +15,7 @@ public class ReadingBenchmarks
 
     private readonly MarkdownReader _markdown = new();
 
-    private readonly DelimitedReader _csv = new();
+    private readonly CsvReader _csv = new();
 
     private readonly JsonReader _json = new();
 
@@ -89,6 +89,6 @@ public class ReadingBenchmarks
         using var content = new MemoryStream(file);
         var blocks = await reader.ReadAsync(content);
 
-        return Markdown.Of(reader.Format, blocks).Text.Length;
+        return Document.Of(reader.Kind, blocks).Text.Length;
     }
 }

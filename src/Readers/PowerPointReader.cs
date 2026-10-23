@@ -17,7 +17,7 @@ namespace Snail.Toolkit.Documents.Readers;
 public sealed class PowerPointReader : IFormatReader
 {
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.PowerPoint;
+    public DocumentKind Kind => DocumentKind.PowerPoint;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".pptx", ".pptm"];
@@ -35,7 +35,7 @@ public sealed class PowerPointReader : IFormatReader
         var budget = new CharacterBudget();
         int number = 0;
 
-        foreach (var id in Listed(presentation, cancellationToken))
+        foreach (var id in Slides(presentation, cancellationToken))
         {
             number++;
 
@@ -58,7 +58,7 @@ public sealed class PowerPointReader : IFormatReader
     /// limits let through, stood at 779 MB as a tree before the first slide was looked up. Read entry by entry, every slide's heading is
     /// counted against the budget of characters as it is met.
     /// </remarks>
-    private static IEnumerable<P.SlideId> Listed(PresentationPart presentation, CancellationToken cancellationToken)
+    private static IEnumerable<P.SlideId> Slides(PresentationPart presentation, CancellationToken cancellationToken)
     {
         using var reader = OpenXmlReader.Create(presentation);
 
@@ -82,7 +82,7 @@ public sealed class PowerPointReader : IFormatReader
         foreach (var figure in Figures(slide, budget, cancellationToken))
         {
             if (figure.IsTitle)
-                title ??= Said(figure);
+                title ??= Text(figure);
             else if (figure.Rows is { } rows)
                 content.Add(new TableBlock(null, rows));
             else
@@ -97,8 +97,8 @@ public sealed class PowerPointReader : IFormatReader
         foreach (var block in content)
             yield return block;
 
-        if (Notes(slide.NotesSlidePart, budget, cancellationToken) is { Length: > 0 } said)
-            yield return new Paragraph($"Notes: {said}");
+        if (Notes(slide.NotesSlidePart, budget, cancellationToken) is { Length: > 0 } notes)
+            yield return new Paragraph($"Notes: {notes}");
     }
 
     /// <summary>The lines of a figure as blocks: points of the slide when the figure is the layout's body, paragraphs otherwise.</summary>
@@ -117,13 +117,13 @@ public sealed class PowerPointReader : IFormatReader
         if (notes is null)
             return string.Empty;
 
-        var said = Figures(notes, budget, cancellationToken).Where(figure => figure.IsBody).Select(Said);
+        var spoken = Figures(notes, budget, cancellationToken).Where(figure => figure.IsBody).Select(Text);
 
-        return string.Join('\n', said);
+        return string.Join('\n', spoken);
     }
 
     /// <summary>The text of a figure, a line a paragraph.</summary>
-    private static string Said(Figure figure) =>
+    private static string Text(Figure figure) =>
         string.Join('\n', figure.Lines.Select(line => line.Text));
 
     /// <summary>The shapes and tables of a part in order, each read to its end as the reader meets it; shapes in a group arrive as their own.</summary>
@@ -154,7 +154,7 @@ public sealed class PowerPointReader : IFormatReader
         P.PlaceholderValues? type = null;
         List<(int Level, string Text)> lines = [];
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
             if (!reader.IsStartElement)
                 continue;
@@ -183,7 +183,7 @@ public sealed class PowerPointReader : IFormatReader
         int level = 0;
         var text = new StringBuilder();
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
             if (!reader.IsStartElement)
                 continue;
@@ -214,7 +214,7 @@ public sealed class PowerPointReader : IFormatReader
         List<IReadOnlyList<string>> rows = [];
         List<string> cells = [];
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
             if (reader.IsStartElement && reader.ElementType == typeof(A.TableRow) && reader.Depth == depth + 1)
                 cells = [];
@@ -232,7 +232,7 @@ public sealed class PowerPointReader : IFormatReader
         int depth = reader.Depth;
         List<string> lines = [];
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
             if (reader.IsStartElement && reader.ElementType == typeof(A.Paragraph) && Line(reader, budget) is { Text.Length: > 0 } line)
                 lines.Add(line.Text);
@@ -240,9 +240,6 @@ public sealed class PowerPointReader : IFormatReader
 
         return string.Join('\n', lines);
     }
-
-    private static bool IsEndAt(OpenXmlReader reader, int depth) =>
-        reader.IsEndElement && reader.Depth == depth;
 
     /// <summary>A shape or a table of a slide as read: whether it is the layout's title or body, its lines, or its rows when it is a table.</summary>
     private sealed record Figure(bool IsTitle, bool IsBody, IReadOnlyList<(int Level, string Text)> Lines, IReadOnlyList<IReadOnlyList<string>>? Rows);

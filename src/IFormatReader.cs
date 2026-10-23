@@ -9,8 +9,8 @@ namespace Snail.Toolkit.Documents;
 /// </remarks>
 public interface IFormatReader
 {
-    /// <summary>The format this reader reads.</summary>
-    DocumentKind Format { get; }
+    /// <summary>The kind of document this reader reads.</summary>
+    DocumentKind Kind { get; }
 
     /// <summary>The file extensions it takes, with their dots, lower case.</summary>
     IReadOnlyList<string> Extensions { get; }

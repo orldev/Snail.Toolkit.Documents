@@ -64,7 +64,7 @@ public sealed class LostTextTests
     [Fact]
     public async Task Sheet_EmptyCellBetweenFullOnes_KeepsItsNeighboursInPlace()
     {
-        var document = Markdown.Of(DocumentKind.Excel, await new ExcelReader().ReadAsync(new MemoryStream(SheetWithEmptyCells())));
+        var document = Document.Of(DocumentKind.Excel, await new ExcelReader().ReadAsync(new MemoryStream(SheetWithEmptyCells())));
 
         Assert.Equal([["a", string.Empty, "c"]], document.Tables[0].Rows.Select(row => row.ToArray()));
     }
@@ -75,7 +75,7 @@ public sealed class LostTextTests
     {
         byte[] page = Encoding.UTF8.GetBytes("<html><body><form method=\"post\" action=\"./Default.aspx\"><h1>Prices</h1><p>Bread 50</p></form></body></html>");
 
-        var document = Markdown.Of(DocumentKind.Html, await new HtmlReader().ReadAsync(new MemoryStream(page)));
+        var document = Document.Of(DocumentKind.Html, await new HtmlReader().ReadAsync(new MemoryStream(page)));
 
         Assert.Contains("Bread 50", document.Text, StringComparison.Ordinal);
     }
@@ -109,7 +109,7 @@ public sealed class LostTextTests
     }
 
     private static async Task<Document> ReadAsync(byte[] word) =>
-        Markdown.Of(DocumentKind.Word, await new WordReader().ReadAsync(new MemoryStream(word)));
+        Document.Of(DocumentKind.Word, await new WordReader().ReadAsync(new MemoryStream(word)));
 
     private static int Count(string text, string piece) =>
         (text.Length - text.Replace(piece, string.Empty, StringComparison.Ordinal).Length) / piece.Length;

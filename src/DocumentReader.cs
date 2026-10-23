@@ -7,24 +7,24 @@ namespace Snail.Toolkit.Documents;
 /// The format is told by the extension alone. Sniffing the content would read a file as something its sender did not
 /// call it, and a file that is not what its name says is answered as damaged, which is what it is.
 /// </remarks>
-public sealed class DocumentReader(IEnumerable<IFormatReader> formats, TimeProvider? clock = null)
+public sealed class DocumentReader(IEnumerable<IFormatReader> readers, TimeProvider? clock = null)
 {
-    private readonly IReadOnlyList<IFormatReader> _formats = [.. formats];
+    private readonly IReadOnlyList<IFormatReader> _readers = [.. readers];
 
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
 
     /// <summary>A reader of every format this library reads.</summary>
-    public static DocumentReader Every { get; } = new(Formats.Every());
+    public static DocumentReader Every { get; } = new(FormatReaders.Every());
 
     /// <summary>The extensions read, with their dots, in lower case.</summary>
-    public IReadOnlyList<string> Extensions { get; } = [.. formats.SelectMany(format => format.Extensions)];
+    public IReadOnlyList<string> Extensions { get; } = [.. readers.SelectMany(reader => reader.Extensions)];
 
     /// <summary>The reader a file of this name is read with; null when no reader takes it.</summary>
     public IFormatReader? ReaderFor(string fileName)
     {
         string extension = Path.GetExtension(fileName).ToLowerInvariant();
 
-        return _formats.FirstOrDefault(format => format.Extensions.Contains(extension, StringComparer.Ordinal));
+        return _readers.FirstOrDefault(reader => reader.Extensions.Contains(extension, StringComparer.Ordinal));
     }
 
     /// <summary>The file read into its document, or why it was not, within <see cref="ReadingLimits.MostReadingSeconds"/>.</summary>
@@ -37,16 +37,16 @@ public sealed class DocumentReader(IEnumerable<IFormatReader> formats, TimeProvi
     /// </remarks>
     public async Task<Reading> ReadAsync(Stream content, string fileName, CancellationToken cancellationToken = default)
     {
-        if (ReaderFor(fileName) is not { } format)
+        if (ReaderFor(fileName) is not { } reader)
             return Reading.Refused(ReadingFailure.UnknownFormat, $"'{Path.GetExtension(fileName)}' is not a format this library reads");
 
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(ReadingLimits.MostReadingSeconds), _clock);
-        using var reading = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
 
         try
         {
-            var blocks = await Task.Run(() => format.ReadAsync(content, reading.Token), reading.Token).WaitAsync(reading.Token);
-            var document = Markdown.Of(format.Format, blocks);
+            var blocks = await Task.Run(() => reader.ReadAsync(content, cancellation.Token), cancellation.Token).WaitAsync(cancellation.Token);
+            var document = Document.Of(reader.Kind, blocks);
 
             return Reading.Of(document);
         }

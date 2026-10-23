@@ -18,7 +18,7 @@ public sealed class HtmlReader : IFormatReader
     private static readonly HashSet<string> Inline = new(StringComparer.OrdinalIgnoreCase) { "a", "span", "strong", "b", "em", "i", "u", "code", "small", "sub", "sup", "mark", "abbr", "time", "label", "br", "img", "s", "q", "cite", "kbd", "var" };
 
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Html;
+    public DocumentKind Kind => DocumentKind.Html;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".html", ".htm"];
@@ -81,13 +81,13 @@ public sealed class HtmlReader : IFormatReader
 
             Flush(blocks, loose);
 
-            if (!IsReadAsABlock(element, blocks))
+            if (!TryAddBlock(element, blocks))
                 open.Push(element.ChildNodes.GetEnumerator());
         }
     }
 
     /// <summary>Adds the block an element is, or answers false for a container whose children are walked instead.</summary>
-    private static bool IsReadAsABlock(IElement element, List<Block> blocks)
+    private static bool TryAddBlock(IElement element, List<Block> blocks)
     {
         switch (element.LocalName.ToLowerInvariant())
         {
@@ -104,7 +104,7 @@ public sealed class HtmlReader : IFormatReader
                 blocks.Add(new TableBlock(element.QuerySelector("caption")?.TextContent.Trim(), Rows(element)));
                 return true;
             case "ul" or "ol":
-                Items(element, blocks);
+                AddItems(element, blocks);
                 return true;
             default:
                 return false;
@@ -112,10 +112,10 @@ public sealed class HtmlReader : IFormatReader
     }
 
     /// <summary>The items of a list and of the lists nested in them, in document order, without recursion.</summary>
-    private static void Items(IElement root, List<Block> blocks)
+    private static void AddItems(IElement root, List<Block> blocks)
     {
         Stack<(IEnumerator<IElement> Items, int Depth, bool IsOrdered)> open = [];
-        open.Push((Listed(root), 0, IsOrdered(root)));
+        open.Push((Items(root), 0, IsOrdered(root)));
 
         while (open.TryPeek(out var list))
         {
@@ -131,7 +131,7 @@ public sealed class HtmlReader : IFormatReader
             var nested = item.Children.Where(IsList).Reverse();
 
             foreach (var inner in nested)
-                open.Push((Listed(inner), list.Depth + 1, IsOrdered(inner)));
+                open.Push((Items(inner), list.Depth + 1, IsOrdered(inner)));
         }
     }
 
@@ -143,7 +143,7 @@ public sealed class HtmlReader : IFormatReader
         return Collapsed(string.Concat(own.Select(node => node.TextContent)));
     }
 
-    private static IEnumerator<IElement> Listed(IElement list) =>
+    private static IEnumerator<IElement> Items(IElement list) =>
         list.Children.Where(child => child.LocalName.Equals("li", StringComparison.OrdinalIgnoreCase)).GetEnumerator();
 
     private static bool IsList(IElement element) => element.LocalName is "ul" or "ol";

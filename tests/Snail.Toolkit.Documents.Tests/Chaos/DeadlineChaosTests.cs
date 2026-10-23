@@ -48,7 +48,7 @@ public sealed class DeadlineChaosTests
     /// <summary>A reader that is busy for a while in one step and never looks at its token, as a parser of a hostile file is.</summary>
     private sealed class Stubborn(TimeSpan busy) : IFormatReader
     {
-        public DocumentKind Format => DocumentKind.Text;
+        public DocumentKind Kind => DocumentKind.Text;
 
         public IReadOnlyList<string> Extensions { get; } = [".txt"];
 

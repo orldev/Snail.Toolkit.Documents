@@ -17,7 +17,7 @@ public sealed class XlsReader : IFormatReader
     static XlsReader() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Excel;
+    public DocumentKind Kind => DocumentKind.Excel;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".xls"];
@@ -71,7 +71,7 @@ public sealed class XlsReader : IFormatReader
             numbers.Add(row);
         }
 
-        return Sheets.Table(book.Name, rows, numbers);
+        return UsedRange.Table(book.Name, rows, numbers);
     }
 
     private static string Value(object? value) => value switch

@@ -1,7 +1,7 @@
 namespace Snail.Toolkit.Documents.Readers;
 
 /// <summary>What every workbook format shares once its cells are read: one table a sheet, cut to its used columns.</summary>
-internal static class Sheets
+internal static class UsedRange
 {
     /// <summary>The rows of a sheet as one table under the addresses they had; null for a sheet with nothing in it.</summary>
     /// <remarks>A sheet that starts at column A keeps its rows as they are: slicing every row from 0 copied each of them, 5 % of the Excel benchmark's allocations.</remarks>

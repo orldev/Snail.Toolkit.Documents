@@ -7,7 +7,7 @@ public sealed class MarkdownTests
     [Fact]
     public void Of_PartsHeadingsAndTables_PointAtWhereTheyStartInTheText()
     {
-        var document = Markdown.Of(DocumentKind.Pdf,
+        var document = Document.Of(DocumentKind.Pdf,
         [
             new PartStart(PartKind.Page, 1, null),
             new Heading(2, "Итоги"),
@@ -16,10 +16,32 @@ public sealed class MarkdownTests
         ]);
 
         Assert.All(document.Parts, part => Assert.StartsWith($"## Page {part.Number}", document.Text[part.Start..], StringComparison.Ordinal));
-        Assert.StartsWith("## Итоги", document.Text[document.Headings[0].Start..], StringComparison.Ordinal);
+        Assert.StartsWith("## Итоги", document.Text[document.Sections[0].Start..], StringComparison.Ordinal);
         Assert.StartsWith("| a |", document.Text[document.Tables[0].Start..], StringComparison.Ordinal);
         Assert.Equal(document.Text.Length, document.Parts.Sum(part => part.Length));
         Assert.Equal(1, document.Tables[0].Part);
+    }
+
+    /// <summary>A section is what a model asks for by its heading: it runs through the sections under it and stops at the next one of its level.</summary>
+    [Fact]
+    public void Of_NestedHeadings_SectionsRunToTheNextHeadingOfTheirLevelOrAbove()
+    {
+        var document = Document.Of(DocumentKind.Markdown,
+        [
+            new Heading(1, "Отчёт"),
+            new Heading(2, "Январь"),
+            new Paragraph("сто"),
+            new Heading(3, "Подробно"),
+            new Heading(2, "Февраль"),
+            new Paragraph("двести")
+        ]);
+
+        string[] written = [.. document.Sections.Select(section => document.Text.Substring(section.Start, section.Length).TrimEnd())];
+
+        Assert.Equal(document.Text, written[0]);
+        Assert.Equal("## Январь\n\nсто\n\n### Подробно", written[1]);
+        Assert.Equal("### Подробно", written[2]);
+        Assert.Equal("## Февраль\n\nдвести", written[3]);
     }
 
     /// <summary>A bar inside a cell is a column border to Markdown unless it is escaped; a short row would shift the next column left.</summary>
@@ -30,7 +52,7 @@ public sealed class MarkdownTests
     [Fact]
     public void Of_BlocksThatSayNothing_LeaveNoBlankLines()
     {
-        var document = Markdown.Of(DocumentKind.Text, [new Paragraph("  "), new Paragraph("Текст"), new TableBlock(null, [])]);
+        var document = Document.Of(DocumentKind.Text, [new Paragraph("  "), new Paragraph("Текст"), new TableBlock(null, [])]);
 
         Assert.Equal("Текст", document.Text);
         Assert.Empty(document.Tables);
@@ -40,7 +62,7 @@ public sealed class MarkdownTests
     [Fact]
     public void Of_ABlockOfAKindNobodyWrites_LeavesItOut()
     {
-        var document = Markdown.Of(DocumentKind.Text, [new Paragraph("Текст"), new Unknown()]);
+        var document = Document.Of(DocumentKind.Text, [new Paragraph("Текст"), new Unknown()]);
 
         Assert.Equal("Текст", document.Text);
     }
@@ -52,7 +74,7 @@ public sealed class MarkdownTests
     /// <summary>A file that unpacks to more text than a document may is refused while it is written, not after.</summary>
     [Fact]
     public void Of_BlocksPastTheCharacterBudget_IsRefusedAsTooLarge() =>
-        Assert.Throws<DocumentTooLargeException>(() => Markdown.Of(DocumentKind.Text,
+        Assert.Throws<DocumentTooLargeException>(() => Document.Of(DocumentKind.Text,
         [
             new Paragraph(new string('x', ReadingLimits.MostDocumentCharacters / 2)),
             new Paragraph(new string('y', ReadingLimits.MostDocumentCharacters / 2))

@@ -14,7 +14,7 @@ namespace Snail.Toolkit.Documents.Readers;
 public sealed class PdfReader : IFormatReader
 {
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Pdf;
+    public DocumentKind Kind => DocumentKind.Pdf;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".pdf"];

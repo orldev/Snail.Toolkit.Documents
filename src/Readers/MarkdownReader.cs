@@ -6,7 +6,7 @@ namespace Snail.Toolkit.Documents.Readers;
 public sealed partial class MarkdownReader : IFormatReader
 {
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Markdown;
+    public DocumentKind Kind => DocumentKind.Markdown;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".md", ".markdown"];
@@ -29,14 +29,14 @@ public sealed partial class MarkdownReader : IFormatReader
             if (line.TrimStart().StartsWith("```", StringComparison.Ordinal))
             {
                 Flush(blocks, paragraph);
-                index = Fenced(lines, index, blocks);
+                index = AddCode(lines, index, blocks);
                 continue;
             }
 
             if (IsTableAt(lines, index))
             {
                 Flush(blocks, paragraph);
-                index = Tabled(lines, index, blocks);
+                index = AddTable(lines, index, blocks);
                 continue;
             }
 
@@ -76,7 +76,8 @@ public sealed partial class MarkdownReader : IFormatReader
         paragraph.Clear();
     }
 
-    private static int Fenced(string[] lines, int start, List<Block> blocks)
+    /// <summary>Adds the fenced code that opens at <paramref name="start"/>, and answers the line that closes it.</summary>
+    private static int AddCode(string[] lines, int start, List<Block> blocks)
     {
         string language = lines[start].Trim()[3..].Trim();
         int end = start + 1;
@@ -90,9 +91,10 @@ public sealed partial class MarkdownReader : IFormatReader
     }
 
     private static bool IsTableAt(string[] lines, int index) =>
-        index + 1 < lines.Length && IsRow(lines[index]) && Separator().IsMatch(lines[index + 1]);
+        index + 1 < lines.Length && IsRow(lines[index]) && DelimiterRow().IsMatch(lines[index + 1]);
 
-    private static int Tabled(string[] lines, int start, List<Block> blocks)
+    /// <summary>Adds the table whose header is at <paramref name="start"/>, and answers its last row.</summary>
+    private static int AddTable(string[] lines, int start, List<Block> blocks)
     {
         List<IReadOnlyList<string>> rows = [Cells(lines[start])];
         int index = start + 2;
@@ -126,7 +128,7 @@ public sealed partial class MarkdownReader : IFormatReader
     /// 400 000 spaces in 1 ms and accepts the same separators.
     /// </remarks>
     [GeneratedRegex(@"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex Separator();
+    private static partial Regex DelimiterRow();
 
     [GeneratedRegex(@"(?<!\\)\|", RegexOptions.CultureInvariant)]
     private static partial Regex UnescapedBar();

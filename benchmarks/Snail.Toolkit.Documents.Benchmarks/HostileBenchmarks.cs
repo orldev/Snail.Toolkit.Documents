@@ -32,7 +32,7 @@ public class HostileBenchmarks
         try
         {
             using var content = new MemoryStream(file);
-            Markdown.Of(reader.Format, await reader.ReadAsync(content));
+            Document.Of(reader.Kind, await reader.ReadAsync(content));
 
             return false;
         }

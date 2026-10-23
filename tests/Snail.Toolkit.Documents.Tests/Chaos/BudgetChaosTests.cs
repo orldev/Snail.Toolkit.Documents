@@ -197,7 +197,7 @@ public sealed class BudgetChaosTests(ITestOutputHelper output)
         string text = string.Concat(Enumerable.Repeat("a;b;c\n", 2_000_000));
         long before = GC.GetAllocatedBytesForCurrentThread();
 
-        char separator = DelimitedReader.Separator(text);
+        char separator = CsvReader.Separator(text);
 
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.Equal(';', separator);
@@ -215,7 +215,7 @@ public sealed class BudgetChaosTests(ITestOutputHelper output)
         IReadOnlyList<IReadOnlyList<string>> rows = [.. Enumerable.Range(0, 1_000).Select(_ => (IReadOnlyList<string>)[.. Enumerable.Repeat(cell, 100)])];
         long before = GC.GetAllocatedBytesForCurrentThread();
 
-        Assert.Throws<DocumentTooLargeException>(() => Markdown.Of(DocumentKind.Csv, [new TableBlock(null, rows)]));
+        Assert.Throws<DocumentTooLargeException>(() => Document.Of(DocumentKind.Csv, [new TableBlock(null, rows)]));
 
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(allocated < 2L * ReadingLimits.MostDocumentCharacters, $"refusing one table allocated {allocated / 1_048_576} MB");

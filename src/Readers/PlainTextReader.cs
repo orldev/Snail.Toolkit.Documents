@@ -4,7 +4,7 @@ namespace Snail.Toolkit.Documents.Readers;
 public sealed class PlainTextReader : IFormatReader
 {
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Text;
+    public DocumentKind Kind => DocumentKind.Text;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".txt", ".text", ".log"];

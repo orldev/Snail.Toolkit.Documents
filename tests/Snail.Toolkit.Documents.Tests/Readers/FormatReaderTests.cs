@@ -12,7 +12,7 @@ public sealed class FormatReaderTests
     {
         var document = await ReadAsync(new WordReader(), Samples.Word());
 
-        Assert.Equal([new Section(1, "Отчёт за неделю", 0)], document.Headings);
+        Assert.Equal([new Section(1, "Отчёт за неделю", 0, document.Text.Length)], document.Sections);
         Assert.Contains("# Отчёт за неделю\n\nПервый абзац отчёта.\n\n- пункт списка", document.Text, StringComparison.Ordinal);
         Assert.Equal([["Месяц", "Сумма"], ["Январь", "100"]], Rows(Assert.Single(document.Tables)));
     }
@@ -23,7 +23,7 @@ public sealed class FormatReaderTests
     {
         var document = await ReadAsync(new WordReader(), Samples.WordOfEveryShape());
 
-        Assert.Equal([(1, "Заголовок документа"), (2, "Раздел"), (3, "Подраздел")], document.Headings.Select(heading => (heading.Level, heading.Title)));
+        Assert.Equal([(1, "Заголовок документа"), (2, "Раздел"), (3, "Подраздел")], document.Sections.Select(section => (section.Level, section.Title)));
     }
 
     /// <summary>Text inside a content control is the document's text too; a reader that skipped it would lose whole forms.</summary>
@@ -55,7 +55,7 @@ public sealed class FormatReaderTests
 
         var addresses = document.Tables[0].Addresses!;
 
-        Assert.Equal("B4", addresses.Of(2, 1));
+        Assert.Equal("B4", addresses.At(2, 1));
         Assert.Contains("| 4 |  | 12 |", document.Text, StringComparison.Ordinal);
     }
 
@@ -69,8 +69,8 @@ public sealed class FormatReaderTests
 
         Assert.Equal(["Счета", "Пусто"], document.Parts.Select(part => part.Title));
         Assert.Equal([["Номер", "Дата", "Сумма"], ["INV-7", "2026-10-14", "118000.5"], ["INV-8", string.Empty, "42"]], Rows(table));
-        Assert.Equal("B2", table.Addresses!.Of(0, 0));
-        Assert.Equal("D5", table.Addresses.Of(2, 2));
+        Assert.Equal("B2", table.Addresses!.At(0, 0));
+        Assert.Equal("D5", table.Addresses.At(2, 2));
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public sealed class FormatReaderTests
         var document = await ReadAsync(new WordReader(), GeneratedWord());
 
         Assert.Equal("## Findings", document.Text.Split('\n')[0]);
-        Assert.Equal(2, Assert.Single(document.Headings).Level);
+        Assert.Equal(2, Assert.Single(document.Sections).Level);
     }
 
     /// <summary>A locked PDF says so, rather than being called damaged and asked for again.</summary>
@@ -162,7 +162,7 @@ public sealed class FormatReaderTests
     [Fact]
     public async Task Csv_SavedByARussianExcel_ReadsItsLettersSeparatorAndQuotedCell()
     {
-        var document = await ReadAsync(new DelimitedReader(), Samples.Csv());
+        var document = await ReadAsync(new CsvReader(), Samples.Csv());
 
         Assert.Equal([["Город", "Сумма"], ["Москва", "1;5"], ["Казань", "7"]], Rows(Assert.Single(document.Tables)));
     }
@@ -171,7 +171,7 @@ public sealed class FormatReaderTests
     [Fact]
     public async Task Csv_QuotedHeaderAndDoubledQuotes_KeepTheSeparatorAndTheQuotes()
     {
-        var document = await ReadAsync(new DelimitedReader(), Encoding.UTF8.GetBytes("\"Название; полное\",Цена\n\"Торт \"\"Наполеон\"\"\",300\n"));
+        var document = await ReadAsync(new CsvReader(), Encoding.UTF8.GetBytes("\"Название; полное\",Цена\n\"Торт \"\"Наполеон\"\"\",300\n"));
 
         Assert.Equal([["Название; полное", "Цена"], ["Торт \"Наполеон\"", "300"]], Rows(Assert.Single(document.Tables)));
     }
@@ -226,7 +226,7 @@ public sealed class FormatReaderTests
             </body></html>
             """));
 
-        Assert.Equal("Цены", Assert.Single(document.Headings).Title);
+        Assert.Equal("Цены", Assert.Single(document.Sections).Title);
         Assert.Contains("Текст без абзаца, с выделением.", document.Text, StringComparison.Ordinal);
         Assert.Contains("- Один\n  - Вложенный\n- Два", document.Text, StringComparison.Ordinal);
         Assert.Equal([["Товар", "Цена"], ["Хлеб", "50"]], Rows(Assert.Single(document.Tables)));
@@ -247,7 +247,7 @@ public sealed class FormatReaderTests
             </body></html>
             """));
 
-        Assert.Equal([(2, "Раздел")], document.Headings.Select(heading => (heading.Level, heading.Title)));
+        Assert.Equal([(2, "Раздел")], document.Sections.Select(section => (section.Level, section.Title)));
         Assert.Contains("## Раздел\n\nАбзац текста.\n\nЦитата\n\n```\nvar  x = 1;\n```", document.Text, StringComparison.Ordinal);
     }
 
@@ -283,7 +283,7 @@ public sealed class FormatReaderTests
             ```
             """));
 
-        Assert.Equal(["Заголовок"], document.Headings.Select(heading => heading.Title));
+        Assert.Equal(["Заголовок"], document.Sections.Select(section => section.Title));
         Assert.Equal([["a", "b | c"], ["1", "2"]], Rows(Assert.Single(document.Tables)));
         Assert.Contains("```cs\nvar x = 1;\n```", document.Text, StringComparison.Ordinal);
     }
@@ -297,7 +297,7 @@ public sealed class FormatReaderTests
     }
 
     private static async Task<Document> ReadAsync(IFormatReader reader, byte[] bytes) =>
-        Markdown.Of(reader.Format, await reader.ReadAsync(new MemoryStream(bytes)));
+        Document.Of(reader.Kind, await reader.ReadAsync(new MemoryStream(bytes)));
 
     private static string[][] Rows(Table table) => [.. table.Rows.Select(row => row.ToArray())];
 

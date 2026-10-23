@@ -116,7 +116,7 @@ public sealed class HostileFileTests
     }
 
     private static async Task<Document> ReadAsync(IFormatReader reader, byte[] file) =>
-        Markdown.Of(reader.Format, await reader.ReadAsync(new MemoryStream(file)));
+        Document.Of(reader.Kind, await reader.ReadAsync(new MemoryStream(file)));
 
     private static byte[] Workbook(S.Row[] rows)
     {

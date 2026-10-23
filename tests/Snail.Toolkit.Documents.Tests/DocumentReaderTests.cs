@@ -13,8 +13,8 @@ public sealed class DocumentReaderTests
     {
         var reading = await DocumentReader.Every.ReadAsync(new MemoryStream(Samples.Pdf()), "REPORT.PDF");
 
-        Assert.True(reading.IsRead);
-        Assert.Equal(DocumentKind.Pdf, reading.Document!.Format);
+        Assert.True(reading.TryGetDocument(out var document));
+        Assert.Equal(DocumentKind.Pdf, document.Kind);
     }
 
     /// <summary>An older binary Word file has a name no reader takes: refused before a byte is read.</summary>
@@ -23,6 +23,7 @@ public sealed class DocumentReaderTests
     {
         var reading = await DocumentReader.Every.ReadAsync(new MemoryStream([1, 2, 3]), "letter.rtf");
 
+        Assert.False(reading.TryGetDocument(out _));
         Assert.Equal(ReadingFailure.UnknownFormat, reading.Failure);
         Assert.Contains(".rtf", reading.Reason, StringComparison.Ordinal);
     }
@@ -93,7 +94,7 @@ public sealed class DocumentReaderTests
 
         var reader = provider.GetRequiredService<DocumentReader>();
 
-        Assert.Equal(Documents.Readers.Formats.Every().Count, provider.GetServices<IFormatReader>().Count());
+        Assert.Equal(Documents.Readers.FormatReaders.Every().Count, provider.GetServices<IFormatReader>().Count());
         Assert.Contains(".pptx", reader.Extensions);
         Assert.Contains(".xls", reader.Extensions);
     }
@@ -117,7 +118,7 @@ public sealed class DocumentReaderTests
     /// <summary>A reader that never finishes until it is told to stop.</summary>
     private sealed class Endless : IFormatReader
     {
-        public DocumentKind Format => DocumentKind.Text;
+        public DocumentKind Kind => DocumentKind.Text;
 
         public IReadOnlyList<string> Extensions { get; } = [".txt"];
 

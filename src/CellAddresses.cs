@@ -10,7 +10,7 @@ namespace Snail.Toolkit.Documents;
 public sealed record CellAddresses(IReadOnlyList<int> Rows, int FirstColumn)
 {
     /// <summary>The address of the cell at a row and column of the table, such as <c>B7</c>.</summary>
-    public string Of(int row, int column) => $"{Letters(FirstColumn + column)}{Rows[row]}";
+    public string At(int row, int column) => $"{Letters(FirstColumn + column)}{Rows[row]}";
 
     /// <summary>The letters of a column counted from 0: 0 is A, 25 is Z, 26 is AA.</summary>
     public static string Letters(int column)

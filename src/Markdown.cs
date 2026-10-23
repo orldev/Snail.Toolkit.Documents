@@ -8,21 +8,21 @@ namespace Snail.Toolkit.Documents;
 /// the model passes it back as <c>from</c>, and a second pass that counted differently would send it into the
 /// middle of the wrong page.
 /// </remarks>
-public static class Markdown
+internal static class Markdown
 {
     /// <summary>The document the blocks make.</summary>
     /// <exception cref="DocumentTooLargeException">The text, or one of its tables, comes to more than one document may.</exception>
-    public static Document Of(DocumentKind format, IReadOnlyList<Block> blocks)
+    public static Document Write(DocumentKind kind, IReadOnlyList<Block> blocks)
     {
         var text = new StringBuilder();
         List<(PartStart Start, int At)> parts = [];
-        List<Section> headings = [];
+        List<(Heading Heading, int At)> headings = [];
         List<Table> tables = [];
         Block? previous = null;
 
         foreach (var block in blocks)
         {
-            if (block is TableBlock grid && Characters(grid) > ReadingLimits.MostDocumentCharacters - text.Length)
+            if (IsTableTooLarge(block, text.Length))
                 throw new DocumentTooLargeException($"its text comes to more than {ReadingLimits.MostDocumentCharacters} characters");
 
             if (Written(block) is not { Length: > 0 } written)
@@ -43,7 +43,7 @@ public static class Markdown
                     parts.Add((start, at));
                     break;
                 case Heading heading:
-                    headings.Add(new Section(heading.Level, heading.Text, at));
+                    headings.Add((heading, at));
                     break;
                 case TableBlock table:
                     tables.Add(new Table(tables.Count + 1, table.Title, parts.Count > 0 ? parts[^1].Start.Number : null, at, table.Rows) { Addresses = table.Addresses });
@@ -56,7 +56,7 @@ public static class Markdown
 
         string whole = text.ToString();
 
-        return new Document(format, whole, Measured(parts, whole.Length), headings, tables);
+        return new Document(kind, whole, Measured(parts, whole.Length), Sectioned(headings, whole.Length), tables);
     }
 
     /// <summary>A block as Markdown; empty for one that says nothing.</summary>
@@ -122,7 +122,11 @@ public static class Markdown
         return [letters, .. numbered];
     }
 
-    /// <summary>The characters a table's cells hold, a lower bound of what its grid writes; one table of forty million characters was written whole before the budget saw it.</summary>
+    /// <summary>Whether a table's cells alone come to more than the text may still take; one table of forty million characters was written whole before the budget saw it.</summary>
+    private static bool IsTableTooLarge(Block block, int length) =>
+        block is TableBlock table && Characters(table) > ReadingLimits.MostDocumentCharacters - length;
+
+    /// <summary>The characters a table's cells hold, a lower bound of what its grid writes.</summary>
     private static long Characters(TableBlock table)
     {
         long characters = 0;
@@ -143,9 +147,9 @@ public static class Markdown
         string.Join(' ', text.Split((char[])['\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries).Select(piece => piece.Trim()).Where(piece => piece.Length > 0));
 
     /// <summary>What goes before a block: nothing at the start, a line break between list items, a blank line otherwise.</summary>
-    private static string Separator(int written, Block? previous, Block block)
+    private static string Separator(int length, Block? previous, Block block)
     {
-        if (written == 0)
+        if (length == 0)
             return string.Empty;
 
         return IsListItemAfterListItem(previous, block) ? "\n" : "\n\n";
@@ -153,6 +157,27 @@ public static class Markdown
 
     private static bool IsListItemAfterListItem(Block? previous, Block block) =>
         previous is ListItem && block is ListItem;
+
+    /// <summary>The sections the headings open: each runs to the next heading of its level or above, or to the end of the text.</summary>
+    /// <remarks>Headings still open wait on a stack, so a document of a million headings is measured in one walk, not one walk a heading.</remarks>
+    private static IReadOnlyList<Section> Sectioned(List<(Heading Heading, int At)> headings, int total)
+    {
+        int[] ends = new int[headings.Count];
+        Stack<int> open = [];
+
+        for (int index = 0; index < headings.Count; index++)
+        {
+            while (open.TryPeek(out int above) && headings[above].Heading.Level >= headings[index].Heading.Level)
+                ends[open.Pop()] = headings[index].At;
+
+            open.Push(index);
+        }
+
+        while (open.TryPop(out int unclosed))
+            ends[unclosed] = total;
+
+        return [.. headings.Select((opened, index) => new Section(opened.Heading.Level, opened.Heading.Text, opened.At, ends[index] - opened.At))];
+    }
 
     private static IReadOnlyList<Part> Measured(List<(PartStart Start, int At)> parts, int total) =>
     [

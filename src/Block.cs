@@ -6,7 +6,13 @@ namespace Snail.Toolkit.Documents;
 /// blocks, so headings, tables and the marks of pages look alike whatever the file was, and the outline and the
 /// tables are read from the same pass that writes the text.
 /// </remarks>
-public abstract record Block;
+public abstract record Block
+{
+    /// <summary>Only the blocks below are blocks: a reader of another library builds documents of them, and a kind the writer does not know would be left out of the text.</summary>
+    private protected Block()
+    {
+    }
+}
 
 /// <summary>The start of a page, sheet or slide.</summary>
 /// <remarks>A scanned page carries pictures and no text layer: its words are not in the document's text.</remarks>

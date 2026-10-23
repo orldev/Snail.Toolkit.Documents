@@ -31,7 +31,7 @@ public sealed partial class WordReader : IFormatReader
     };
 
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Word;
+    public DocumentKind Kind => DocumentKind.Word;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".docx", ".docm"];
@@ -45,14 +45,14 @@ public sealed partial class WordReader : IFormatReader
         using var word = OfficePackage.Opened(content, package => WordprocessingDocument.Open(package, isEditable: false));
 
         var main = word.MainDocumentPart ?? throw new InvalidDataException("the file holds no document");
-        var shape = new Shape(HeadingLevels(main.StyleDefinitionsPart), BulletLevels(main.NumberingDefinitionsPart), new CharacterBudget(), cancellationToken);
+        var pass = new Pass(HeadingLevels(main.StyleDefinitionsPart), BulletLevels(main.NumberingDefinitionsPart), new CharacterBudget(), cancellationToken);
 
-        return [.. Blocks(main, shape)];
+        return [.. Blocks(main, pass)];
     }
 
     /// <summary>The blocks of the document's body: every paragraph and table the part reader meets, each read to its end as it is met.</summary>
     /// <remarks>A paragraph inside a content control arrives as its own event; one inside a table is read as part of the table.</remarks>
-    private static IEnumerable<Block> Blocks(MainDocumentPart main, Shape shape)
+    private static IEnumerable<Block> Blocks(MainDocumentPart main, Pass pass)
     {
         using var reader = OpenXmlReader.Create(main);
         bool hasBody = false;
@@ -62,14 +62,14 @@ public sealed partial class WordReader : IFormatReader
             if (!reader.IsStartElement)
                 continue;
 
-            shape.Token.ThrowIfCancellationRequested();
+            pass.Token.ThrowIfCancellationRequested();
 
             if (reader.ElementType == typeof(W.Body))
                 hasBody = true;
-            else if (reader.ElementType == typeof(W.Paragraph) && Paragraphed(reader, shape) is { } block)
+            else if (reader.ElementType == typeof(W.Paragraph) && Paragraphed(reader, pass) is { } block)
                 yield return block;
             else if (reader.ElementType == typeof(W.Table))
-                yield return new TableBlock(null, Rows(reader, shape));
+                yield return new TableBlock(null, Rows(reader, pass));
         }
 
         if (!hasBody)
@@ -82,18 +82,18 @@ public sealed partial class WordReader : IFormatReader
     /// <c>mc:Fallback</c>, as the older drawing for those that do not. A walk that entered both read every text box twice over;
     /// the fallback is passed over. The text of a box, a nested paragraph, is part of the paragraph that holds it.
     /// </remarks>
-    private static Block? Paragraphed(OpenXmlReader reader, Shape shape)
+    private static Block? Paragraphed(OpenXmlReader reader, Pass pass)
     {
         int depth = reader.Depth;
         W.ParagraphProperties? properties = null;
         var text = new StringBuilder();
         int skipped = -1;
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
             if (skipped >= 0)
             {
-                skipped = IsEndAt(reader, skipped) ? -1 : skipped;
+                skipped = reader.IsEndAt(skipped) ? -1 : skipped;
                 continue;
             }
 
@@ -105,12 +105,12 @@ public sealed partial class WordReader : IFormatReader
             else if (reader.ElementType == typeof(AlternateContentFallback))
                 skipped = reader.Depth;
             else
-                Append(reader, text, shape.Budget);
+                Append(reader, text, pass.Budget);
         }
 
         string written = text.ToString().Trim();
 
-        return string.IsNullOrWhiteSpace(written) ? null : Classified(written, properties, shape);
+        return string.IsNullOrWhiteSpace(written) ? null : Classified(written, properties, pass);
     }
 
     private static void Append(OpenXmlReader reader, StringBuilder text, CharacterBudget budget)
@@ -132,39 +132,39 @@ public sealed partial class WordReader : IFormatReader
     }
 
     /// <summary>What a paragraph with this text and these properties is: a heading by its outline level or style, an item of a list by its numbering, a paragraph otherwise.</summary>
-    private static Block Classified(string text, W.ParagraphProperties? properties, Shape shape)
+    private static Block Classified(string text, W.ParagraphProperties? properties, Pass pass)
     {
         if (properties?.OutlineLevel?.Val?.Value is { } outline && outline < 6)
             return new Heading(outline + 1, text);
 
-        if (properties?.ParagraphStyleId?.Val?.Value is { } style && shape.Levels.TryGetValue(style, out int level))
+        if (properties?.ParagraphStyleId?.Val?.Value is { } style && pass.HeadingLevels.TryGetValue(style, out int level))
             return new Heading(level, text);
 
         if (properties?.NumberingProperties is { } numbering && numbering.NumberingId?.Val?.Value is { } list && list != 0)
         {
             int depth = numbering.NumberingLevelReference?.Val?.Value ?? 0;
 
-            return new ListItem(depth, text, !shape.Bullets.Contains((list, depth)));
+            return new ListItem(depth, text, !pass.BulletLevels.Contains((list, depth)));
         }
 
         return new Paragraph(text);
     }
 
     /// <summary>The rows of the table the reader stands on, read to its end, each cell flattened to one line.</summary>
-    private static IReadOnlyList<IReadOnlyList<string>> Rows(OpenXmlReader reader, Shape shape)
+    private static IReadOnlyList<IReadOnlyList<string>> Rows(OpenXmlReader reader, Pass pass)
     {
         int depth = reader.Depth;
         List<IReadOnlyList<string>> rows = [];
         List<string> cells = [];
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
-            shape.Token.ThrowIfCancellationRequested();
+            pass.Token.ThrowIfCancellationRequested();
 
             if (reader.IsStartElement && reader.ElementType == typeof(W.TableRow) && reader.Depth == depth + 1)
                 cells = [];
             else if (reader.IsStartElement && reader.ElementType == typeof(W.TableCell) && reader.Depth == depth + 2)
-                cells.Add(CellText(reader, shape));
+                cells.Add(CellText(reader, pass));
             else if (reader.IsEndElement && reader.ElementType == typeof(W.TableRow) && reader.Depth == depth + 1 && cells.Count > 0)
                 rows.Add(cells);
         }
@@ -173,30 +173,28 @@ public sealed partial class WordReader : IFormatReader
     }
 
     /// <summary>Everything the cell the reader stands on holds, flattened to one line: its paragraphs, those of the content controls in it and those of a table nested in it.</summary>
-    private static string CellText(OpenXmlReader reader, Shape shape)
+    private static string CellText(OpenXmlReader reader, Pass pass)
     {
         int depth = reader.Depth;
         List<string> lines = [];
 
-        while (reader.Read() && !IsEndAt(reader, depth))
+        while (reader.Read() && !reader.IsEndAt(depth))
         {
-            if (reader.IsStartElement && reader.ElementType == typeof(W.Paragraph) && Paragraphed(reader, shape) is { } block && Line(block) is { Length: > 0 } line)
+            if (reader.IsStartElement && reader.ElementType == typeof(W.Paragraph) && Paragraphed(reader, pass) is { } block && Text(block) is { Length: > 0 } line)
                 lines.Add(line);
         }
 
         return string.Join(' ', lines);
     }
 
-    private static string Line(Block block) => block switch
+    /// <summary>The text of a paragraph, heading or list item; empty for any other block.</summary>
+    private static string Text(Block block) => block switch
     {
         Heading heading => heading.Text,
         Paragraph paragraph => paragraph.Text,
         ListItem item => item.Text,
         _ => string.Empty
     };
-
-    private static bool IsEndAt(OpenXmlReader reader, int depth) =>
-        reader.IsEndElement && reader.Depth == depth;
 
     /// <summary>The heading level of every style that is a heading, by style id, one style built at a time.</summary>
     /// <remarks>
@@ -243,9 +241,9 @@ public sealed partial class WordReader : IFormatReader
     }
 
     /// <summary>The list and level pairs whose numbering draws a bullet rather than a number, one definition built at a time.</summary>
-    private static IReadOnlySet<(int, int)> BulletLevels(NumberingDefinitionsPart? numbering)
+    private static IReadOnlySet<(int List, int Level)> BulletLevels(NumberingDefinitionsPart? numbering)
     {
-        HashSet<(int, int)> bullets = [];
+        HashSet<(int List, int Level)> bullets = [];
 
         if (numbering is null)
             return bullets;
@@ -260,7 +258,7 @@ public sealed partial class WordReader : IFormatReader
                 continue;
 
             if (reader.ElementType == typeof(W.AbstractNum) && reader.LoadCurrentElement() is W.AbstractNum definition && definition.AbstractNumberId?.Value is { } id)
-                bulletLevelsOfAbstract[id] = BulletLevels(definition);
+                bulletLevelsOfAbstract[id] = Bulleted(definition);
             else if (reader.ElementType == typeof(W.NumberingInstance) && reader.LoadCurrentElement() is W.NumberingInstance instance && instance.NumberID?.Value is { } list && instance.AbstractNumId?.Val?.Value is { } abstractId)
                 instances.Add((list, abstractId));
         }
@@ -277,7 +275,8 @@ public sealed partial class WordReader : IFormatReader
         return bullets;
     }
 
-    private static HashSet<int> BulletLevels(W.AbstractNum definition)
+    /// <summary>The levels of a list definition that draw a bullet.</summary>
+    private static HashSet<int> Bulleted(W.AbstractNum definition)
     {
         HashSet<int> levels = [];
 
@@ -293,6 +292,6 @@ public sealed partial class WordReader : IFormatReader
     [GeneratedRegex(@"^heading\s+(?<level>[1-6])$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex HeadingName();
 
-    /// <summary>What one document's walk carries: the heading level of each style, the list levels that draw bullets, the budget of characters and the token.</summary>
-    private sealed record Shape(IReadOnlyDictionary<string, int> Levels, IReadOnlySet<(int, int)> Bullets, CharacterBudget Budget, CancellationToken Token);
+    /// <summary>What one pass over a document's body carries: the heading level of each style, the list levels that draw bullets, the budget of characters and the token.</summary>
+    private sealed record Pass(IReadOnlyDictionary<string, int> HeadingLevels, IReadOnlySet<(int List, int Level)> BulletLevels, CharacterBudget Budget, CancellationToken Token);
 }

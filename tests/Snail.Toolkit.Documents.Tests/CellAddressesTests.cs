@@ -14,5 +14,5 @@ public sealed class CellAddressesTests
 
     [Fact]
     public void Of_CellOfATableStartingAtC10_IsNamedFromTheSheet() =>
-        Assert.Equal("D12", new CellAddresses([10, 12], FirstColumn: 2).Of(1, 1));
+        Assert.Equal("D12", new CellAddresses([10, 12], FirstColumn: 2).At(1, 1));
 }

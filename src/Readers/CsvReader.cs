@@ -6,12 +6,12 @@ namespace Snail.Toolkit.Documents.Readers;
 /// <remarks>
 /// The separator of a .csv is guessed from its first line, counting outside quotes: a Russian Excel writes
 /// semicolons into a file called .csv, because the comma is its decimal mark. A .tsv names its separator and is
-/// read by <see cref="TabSeparatedReader"/>, since a reader never sees the file's name.
+/// read by <see cref="TsvReader"/>, since a reader never sees the file's name.
 /// </remarks>
-public sealed class DelimitedReader : IFormatReader
+public sealed class CsvReader : IFormatReader
 {
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Csv;
+    public DocumentKind Kind => DocumentKind.Csv;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".csv"];

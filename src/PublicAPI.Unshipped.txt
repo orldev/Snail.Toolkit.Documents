@@ -2,7 +2,6 @@
 static Snail.Toolkit.Documents.DocumentReadingRegistration.AddDocumentReading(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Snail.Toolkit.Documents.Block
 abstract Snail.Toolkit.Documents.Block.<Clone>$() -> Snail.Toolkit.Documents.Block!
-Snail.Toolkit.Documents.Block.Block() -> void
 Snail.Toolkit.Documents.Block.Block(Snail.Toolkit.Documents.Block! original) -> void
 Snail.Toolkit.Documents.CellAddresses
 Snail.Toolkit.Documents.CellAddresses.<Clone>$() -> Snail.Toolkit.Documents.CellAddresses!
@@ -11,7 +10,7 @@ Snail.Toolkit.Documents.CellAddresses.Deconstruct(out System.Collections.Generic
 Snail.Toolkit.Documents.CellAddresses.Equals(Snail.Toolkit.Documents.CellAddresses? other) -> bool
 Snail.Toolkit.Documents.CellAddresses.FirstColumn.get -> int
 Snail.Toolkit.Documents.CellAddresses.FirstColumn.init -> void
-Snail.Toolkit.Documents.CellAddresses.Of(int row, int column) -> string!
+Snail.Toolkit.Documents.CellAddresses.At(int row, int column) -> string!
 Snail.Toolkit.Documents.CellAddresses.Rows.get -> System.Collections.Generic.IReadOnlyList<int>!
 Snail.Toolkit.Documents.CellAddresses.Rows.init -> void
 Snail.Toolkit.Documents.CodeBlock
@@ -24,15 +23,15 @@ Snail.Toolkit.Documents.CodeBlock.Language.init -> void
 Snail.Toolkit.Documents.CodeBlock.Text.get -> string!
 Snail.Toolkit.Documents.CodeBlock.Text.init -> void
 Snail.Toolkit.Documents.Document
-static Snail.Toolkit.Documents.Markdown.Of(Snail.Toolkit.Documents.DocumentKind format, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>! blocks) -> Snail.Toolkit.Documents.Document!
+static Snail.Toolkit.Documents.Document.Of(Snail.Toolkit.Documents.DocumentKind kind, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>! blocks) -> Snail.Toolkit.Documents.Document!
 Snail.Toolkit.Documents.Document.<Clone>$() -> Snail.Toolkit.Documents.Document!
-Snail.Toolkit.Documents.Document.Deconstruct(out Snail.Toolkit.Documents.DocumentKind Format, out string! Text, out System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Part!>! Parts, out System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Section!>! Headings, out System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Table!>! Tables) -> void
-Snail.Toolkit.Documents.Document.Document(Snail.Toolkit.Documents.DocumentKind Format, string! Text, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Part!>! Parts, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Section!>! Headings, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Table!>! Tables) -> void
+Snail.Toolkit.Documents.Document.Deconstruct(out Snail.Toolkit.Documents.DocumentKind Kind, out string! Text, out System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Part!>! Parts, out System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Section!>! Sections, out System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Table!>! Tables) -> void
+Snail.Toolkit.Documents.Document.Document(Snail.Toolkit.Documents.DocumentKind Kind, string! Text, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Part!>! Parts, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Section!>! Sections, System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Table!>! Tables) -> void
 Snail.Toolkit.Documents.Document.Equals(Snail.Toolkit.Documents.Document? other) -> bool
-Snail.Toolkit.Documents.Document.Format.get -> Snail.Toolkit.Documents.DocumentKind
-Snail.Toolkit.Documents.Document.Format.init -> void
-Snail.Toolkit.Documents.Document.Headings.get -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Section!>!
-Snail.Toolkit.Documents.Document.Headings.init -> void
+Snail.Toolkit.Documents.Document.Kind.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Document.Kind.init -> void
+Snail.Toolkit.Documents.Document.Sections.get -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Section!>!
+Snail.Toolkit.Documents.Document.Sections.init -> void
 Snail.Toolkit.Documents.Document.Parts.get -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Part!>!
 Snail.Toolkit.Documents.Document.Parts.init -> void
 Snail.Toolkit.Documents.Document.Tables.get -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Table!>!
@@ -54,7 +53,7 @@ Snail.Toolkit.Documents.DocumentLockedException.DocumentLockedException(string! 
 Snail.Toolkit.Documents.DocumentLockedException.DocumentLockedException(string! message, System.Exception! inner) -> void
 Snail.Toolkit.Documents.DocumentReader
 static Snail.Toolkit.Documents.DocumentReader.Every.get -> Snail.Toolkit.Documents.DocumentReader!
-Snail.Toolkit.Documents.DocumentReader.DocumentReader(System.Collections.Generic.IEnumerable<Snail.Toolkit.Documents.IFormatReader!>! formats, System.TimeProvider? clock = null) -> void
+Snail.Toolkit.Documents.DocumentReader.DocumentReader(System.Collections.Generic.IEnumerable<Snail.Toolkit.Documents.IFormatReader!>! readers, System.TimeProvider? clock = null) -> void
 Snail.Toolkit.Documents.DocumentReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Snail.Toolkit.Documents.DocumentReader.ReadAsync(System.IO.Stream! content, string! fileName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Snail.Toolkit.Documents.Reading!>!
 Snail.Toolkit.Documents.DocumentReader.ReaderFor(string! fileName) -> Snail.Toolkit.Documents.IFormatReader?
@@ -74,7 +73,7 @@ Snail.Toolkit.Documents.Heading.Text.get -> string!
 Snail.Toolkit.Documents.Heading.Text.init -> void
 Snail.Toolkit.Documents.IFormatReader
 Snail.Toolkit.Documents.IFormatReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.IFormatReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.IFormatReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.IFormatReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.ListItem
 override Snail.Toolkit.Documents.ListItem.<Clone>$() -> Snail.Toolkit.Documents.ListItem!
@@ -87,7 +86,6 @@ Snail.Toolkit.Documents.ListItem.IsOrdered.init -> void
 Snail.Toolkit.Documents.ListItem.ListItem(int Depth, string! Text, bool IsOrdered) -> void
 Snail.Toolkit.Documents.ListItem.Text.get -> string!
 Snail.Toolkit.Documents.ListItem.Text.init -> void
-Snail.Toolkit.Documents.Markdown
 Snail.Toolkit.Documents.PagePicture
 Snail.Toolkit.Documents.PagePicture.<Clone>$() -> Snail.Toolkit.Documents.PagePicture!
 Snail.Toolkit.Documents.PagePicture.Bytes.get -> byte[]!
@@ -138,71 +136,67 @@ Snail.Toolkit.Documents.PartStart.Number.init -> void
 Snail.Toolkit.Documents.PartStart.PartStart(Snail.Toolkit.Documents.PartKind Kind, int Number, string? Title, bool IsScanned = false) -> void
 Snail.Toolkit.Documents.PartStart.Title.get -> string?
 Snail.Toolkit.Documents.PartStart.Title.init -> void
-Snail.Toolkit.Documents.Readers.DelimitedReader
-Snail.Toolkit.Documents.Readers.DelimitedReader.DelimitedReader() -> void
-Snail.Toolkit.Documents.Readers.DelimitedReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.DelimitedReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
-Snail.Toolkit.Documents.Readers.DelimitedReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
+Snail.Toolkit.Documents.Readers.CsvReader
+Snail.Toolkit.Documents.Readers.CsvReader.CsvReader() -> void
+Snail.Toolkit.Documents.Readers.CsvReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Snail.Toolkit.Documents.Readers.CsvReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.CsvReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.ExcelReader
 Snail.Toolkit.Documents.Readers.ExcelReader.ExcelReader() -> void
 Snail.Toolkit.Documents.Readers.ExcelReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.ExcelReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.ExcelReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.ExcelReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
-Snail.Toolkit.Documents.Readers.Formats
+Snail.Toolkit.Documents.Readers.FormatReaders
 Snail.Toolkit.Documents.Readers.HtmlReader
 Snail.Toolkit.Documents.Readers.HtmlReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.HtmlReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.HtmlReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.HtmlReader.HtmlReader() -> void
 Snail.Toolkit.Documents.Readers.HtmlReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.JsonReader
 Snail.Toolkit.Documents.Readers.JsonReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.JsonReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.JsonReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.JsonReader.JsonReader() -> void
 Snail.Toolkit.Documents.Readers.JsonReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.MarkdownReader
 Snail.Toolkit.Documents.Readers.MarkdownReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.MarkdownReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.MarkdownReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.MarkdownReader.MarkdownReader() -> void
 Snail.Toolkit.Documents.Readers.MarkdownReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.PdfReader
 Snail.Toolkit.Documents.Readers.PdfReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.PdfReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.PdfReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.PdfReader.PdfReader() -> void
 Snail.Toolkit.Documents.Readers.PdfReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.PlainTextReader
 Snail.Toolkit.Documents.Readers.PlainTextReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.PlainTextReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.PlainTextReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.PlainTextReader.PlainTextReader() -> void
 Snail.Toolkit.Documents.Readers.PlainTextReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.PowerPointReader
 Snail.Toolkit.Documents.Readers.PowerPointReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.PowerPointReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.PowerPointReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.PowerPointReader.PowerPointReader() -> void
 Snail.Toolkit.Documents.Readers.PowerPointReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.WordReader
 Snail.Toolkit.Documents.Readers.WordReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.WordReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.WordReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.WordReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.WordReader.WordReader() -> void
 Snail.Toolkit.Documents.Readers.XlsReader
 Snail.Toolkit.Documents.Readers.XlsReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.XlsReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.XlsReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
 Snail.Toolkit.Documents.Readers.XlsReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 Snail.Toolkit.Documents.Readers.XlsReader.XlsReader() -> void
 Snail.Toolkit.Documents.Reading
 static Snail.Toolkit.Documents.Reading.Refused(Snail.Toolkit.Documents.ReadingFailure failure, string! reason) -> Snail.Toolkit.Documents.Reading!
 static Snail.Toolkit.Documents.Reading.Of(Snail.Toolkit.Documents.Document! document) -> Snail.Toolkit.Documents.Reading!
 Snail.Toolkit.Documents.Reading.<Clone>$() -> Snail.Toolkit.Documents.Reading!
-Snail.Toolkit.Documents.Reading.Deconstruct(out Snail.Toolkit.Documents.Document? Document, out Snail.Toolkit.Documents.ReadingFailure? Failure, out string! Reason) -> void
 Snail.Toolkit.Documents.Reading.Document.get -> Snail.Toolkit.Documents.Document?
-Snail.Toolkit.Documents.Reading.Document.init -> void
 Snail.Toolkit.Documents.Reading.Equals(Snail.Toolkit.Documents.Reading? other) -> bool
 Snail.Toolkit.Documents.Reading.Failure.get -> Snail.Toolkit.Documents.ReadingFailure?
-Snail.Toolkit.Documents.Reading.Failure.init -> void
 Snail.Toolkit.Documents.Reading.IsRead.get -> bool
-Snail.Toolkit.Documents.Reading.Reading(Snail.Toolkit.Documents.Document? Document, Snail.Toolkit.Documents.ReadingFailure? Failure, string! Reason) -> void
-Snail.Toolkit.Documents.Reading.Reason.get -> string!
-Snail.Toolkit.Documents.Reading.Reason.init -> void
+Snail.Toolkit.Documents.Reading.TryGetDocument(out Snail.Toolkit.Documents.Document? document) -> bool
+Snail.Toolkit.Documents.Reading.Reason.get -> string?
 Snail.Toolkit.Documents.ReadingFailure
 Snail.Toolkit.Documents.ReadingFailure.Damaged = 1 -> Snail.Toolkit.Documents.ReadingFailure
 Snail.Toolkit.Documents.ReadingFailure.Locked = 2 -> Snail.Toolkit.Documents.ReadingFailure
@@ -222,11 +216,13 @@ Snail.Toolkit.Documents.ScannedPage.ScannedPage(int Number, Snail.Toolkit.Docume
 Snail.Toolkit.Documents.ScannedPages
 Snail.Toolkit.Documents.Section
 Snail.Toolkit.Documents.Section.<Clone>$() -> Snail.Toolkit.Documents.Section!
-Snail.Toolkit.Documents.Section.Deconstruct(out int Level, out string! Title, out int Start) -> void
+Snail.Toolkit.Documents.Section.Deconstruct(out int Level, out string! Title, out int Start, out int Length) -> void
 Snail.Toolkit.Documents.Section.Equals(Snail.Toolkit.Documents.Section? other) -> bool
+Snail.Toolkit.Documents.Section.Length.get -> int
+Snail.Toolkit.Documents.Section.Length.init -> void
 Snail.Toolkit.Documents.Section.Level.get -> int
 Snail.Toolkit.Documents.Section.Level.init -> void
-Snail.Toolkit.Documents.Section.Section(int Level, string! Title, int Start) -> void
+Snail.Toolkit.Documents.Section.Section(int Level, string! Title, int Start, int Length) -> void
 Snail.Toolkit.Documents.Section.Start.get -> int
 Snail.Toolkit.Documents.Section.Start.init -> void
 Snail.Toolkit.Documents.Section.Title.get -> string!
@@ -260,7 +256,7 @@ Snail.Toolkit.Documents.TableBlock.Rows.init -> void
 Snail.Toolkit.Documents.TableBlock.TableBlock(string? Title, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<string!>!>! Rows) -> void
 Snail.Toolkit.Documents.TableBlock.Title.get -> string?
 Snail.Toolkit.Documents.TableBlock.Title.init -> void
-static Snail.Toolkit.Documents.Readers.Formats.Every() -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.IFormatReader!>!
+static Snail.Toolkit.Documents.Readers.FormatReaders.Every() -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.IFormatReader!>!
 static Snail.Toolkit.Documents.ScannedPages.Pictures(System.IO.Stream! pdf, System.Collections.Generic.IReadOnlyList<int>! pages, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.ScannedPage!>!
 virtual Snail.Toolkit.Documents.Block.EqualityContract.get -> System.Type!
 override Snail.Toolkit.Documents.Section.Equals(object? obj) -> bool
@@ -353,9 +349,9 @@ override Snail.Toolkit.Documents.Reading.ToString() -> string!
 override Snail.Toolkit.Documents.CodeBlock.ToString() -> string!
 override Snail.Toolkit.Documents.CellAddresses.ToString() -> string!
 override Snail.Toolkit.Documents.TableBlock.ToString() -> string!
-Snail.Toolkit.Documents.Readers.TabSeparatedReader
-Snail.Toolkit.Documents.Readers.TabSeparatedReader.TabSeparatedReader() -> void
-Snail.Toolkit.Documents.Readers.TabSeparatedReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Snail.Toolkit.Documents.Readers.TabSeparatedReader.Format.get -> Snail.Toolkit.Documents.DocumentKind
-Snail.Toolkit.Documents.Readers.TabSeparatedReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
+Snail.Toolkit.Documents.Readers.TsvReader
+Snail.Toolkit.Documents.Readers.TsvReader.TsvReader() -> void
+Snail.Toolkit.Documents.Readers.TsvReader.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Snail.Toolkit.Documents.Readers.TsvReader.Kind.get -> Snail.Toolkit.Documents.DocumentKind
+Snail.Toolkit.Documents.Readers.TsvReader.ReadAsync(System.IO.Stream! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Snail.Toolkit.Documents.Block!>!>!
 const Snail.Toolkit.Documents.ReadingLimits.MostPicturePixels = 50000000 -> long

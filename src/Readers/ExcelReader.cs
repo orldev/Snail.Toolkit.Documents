@@ -28,7 +28,7 @@ public sealed partial class ExcelReader : IFormatReader
     private const int MostFormats = 1_000_000;
 
     /// <inheritdoc/>
-    public DocumentKind Format => DocumentKind.Excel;
+    public DocumentKind Kind => DocumentKind.Excel;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> Extensions { get; } = [".xlsx", ".xlsm"];
@@ -42,13 +42,13 @@ public sealed partial class ExcelReader : IFormatReader
         using var book = OfficePackage.Opened(content, package => SpreadsheetDocument.Open(package, isEditable: false));
 
         var workbook = book.WorkbookPart ?? throw new InvalidDataException("the file holds no workbook");
-        var shared = SharedStrings(workbook.SharedStringTablePart, cancellationToken);
-        var dates = DateStyles(workbook.WorkbookStylesPart, cancellationToken);
+        var sharedStrings = SharedStrings(workbook.SharedStringTablePart, cancellationToken);
+        var dateStyles = DateStyles(workbook.WorkbookStylesPart, cancellationToken);
         var budget = new CharacterBudget();
         List<Block> blocks = [];
         int number = 0;
 
-        foreach (var sheet in Listed(workbook, cancellationToken))
+        foreach (var sheet in Sheets(workbook, cancellationToken))
         {
             number++;
             var start = new PartStart(PartKind.Sheet, number, sheet.Name?.Value);
@@ -58,7 +58,7 @@ public sealed partial class ExcelReader : IFormatReader
             if (sheet.Id?.Value is not { } id || !workbook.TryGetPartById(id, out var part))
                 throw new InvalidDataException($"the workbook lists the sheet '{sheet.Name?.Value}' under a relationship it does not hold");
 
-            if (part is WorksheetPart worksheet && Table(sheet.Name?.Value, worksheet, shared, dates, budget, cancellationToken) is { } table)
+            if (part is WorksheetPart worksheet && Table(sheet.Name?.Value, worksheet, sharedStrings, dateStyles, budget, cancellationToken) is { } table)
                 blocks.Add(table);
         }
 
@@ -71,7 +71,7 @@ public sealed partial class ExcelReader : IFormatReader
     /// let through, stood at 1.1 GB as a tree before the first sheet was looked up. Read entry by entry, every sheet's heading is counted
     /// against the budget of characters as it is met, so a list too long for one document is refused at the budget.
     /// </remarks>
-    private static IEnumerable<Sheet> Listed(WorkbookPart workbook, CancellationToken cancellationToken)
+    private static IEnumerable<Sheet> Sheets(WorkbookPart workbook, CancellationToken cancellationToken)
     {
         using var reader = OpenXmlReader.Create(workbook);
 
@@ -124,12 +124,12 @@ public sealed partial class ExcelReader : IFormatReader
     /// a tree per row cost 5 % more than the whole on an ordinary ledger. Read this way, the rows kept are what the budgets of cells
     /// and characters allow and every row is a point the deadline can stop at.
     /// </remarks>
-    private static TableBlock? Table(string? title, WorksheetPart part, IReadOnlyList<string> shared, IReadOnlySet<uint> dates, CharacterBudget budget, CancellationToken cancellationToken)
+    private static TableBlock? Table(string? title, WorksheetPart part, IReadOnlyList<string> sharedStrings, IReadOnlySet<uint> dateStyles, CharacterBudget budget, CancellationToken cancellationToken)
     {
         List<string[]> rows = [];
         List<int> numbers = [];
         List<(int Column, string Value)> cells = [];
-        var cell = new CellReading();
+        var cell = new PendingCell();
         long padded = 0;
         using var reader = OpenXmlReader.Create(part);
 
@@ -143,7 +143,7 @@ public sealed partial class ExcelReader : IFormatReader
             }
             else if (reader.ElementType == typeof(Cell) && reader.IsStartElement)
             {
-                cell = CellReading.Opened(reader);
+                cell = PendingCell.Opened(reader);
             }
             else if (reader.ElementType == typeof(CellValue) && reader.IsStartElement)
             {
@@ -155,7 +155,7 @@ public sealed partial class ExcelReader : IFormatReader
             }
             else if (reader.ElementType == typeof(Cell) && reader.IsEndElement)
             {
-                if (Value(cell, shared, dates) is { Length: > 0 } value)
+                if (Value(cell, sharedStrings, dateStyles) is { Length: > 0 } value)
                 {
                     budget.Count(value);
                     cells.Add((Column(cell.Reference) ?? cells.Count, value));
@@ -163,14 +163,14 @@ public sealed partial class ExcelReader : IFormatReader
             }
             else if (reader.ElementType == typeof(Row) && reader.IsEndElement)
             {
-                padded += Kept(cells, rows, numbers);
+                padded += Keep(cells, rows, numbers);
 
                 if (padded > ReadingLimits.MostCells)
                     throw new DocumentTooLargeException($"a sheet comes to more than {ReadingLimits.MostCells} cells once its rows are padded to their last column");
             }
         }
 
-        return Sheets.Table(title, rows, numbers);
+        return UsedRange.Table(title, rows, numbers);
     }
 
     /// <summary>The text of the inline string the reader stands on, its pieces gathered to its end under the budget.</summary>
@@ -193,7 +193,7 @@ public sealed partial class ExcelReader : IFormatReader
     }
 
     /// <summary>Keeps the row just closed when it holds anything, padded to its last used column, and answers its width; a row of nothing is forgotten with its number.</summary>
-    private static int Kept(List<(int Column, string Value)> cells, List<string[]> rows, List<int> numbers)
+    private static int Keep(List<(int Column, string Value)> cells, List<string[]> rows, List<int> numbers)
     {
         if (cells.Count == 0)
         {
@@ -226,12 +226,12 @@ public sealed partial class ExcelReader : IFormatReader
         return (numbers.Count > 0 ? numbers[^1] : 0) + 1;
     }
 
-    private static string Value(CellReading cell, IReadOnlyList<string> shared, IReadOnlySet<uint> dates)
+    private static string Value(PendingCell cell, IReadOnlyList<string> sharedStrings, IReadOnlySet<uint> dateStyles)
     {
         string raw = cell.Raw ?? string.Empty;
 
         if (cell.Type == "s")
-            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) && index < shared.Count ? shared[index] : string.Empty;
+            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) && index < sharedStrings.Count ? sharedStrings[index] : string.Empty;
 
         if (cell.Type == "inlineStr")
             return cell.Inline ?? string.Empty;
@@ -245,11 +245,11 @@ public sealed partial class ExcelReader : IFormatReader
         if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double number))
             return raw;
 
-        return cell.Style is { } style && dates.Contains(style) ? Date(number) : number.ToString("G15", CultureInfo.InvariantCulture);
+        return cell.Style is { } style && dateStyles.Contains(style) ? Date(number) : number.ToString("G15", CultureInfo.InvariantCulture);
     }
 
     /// <summary>What a cell says about itself as it is read: its address, type and style from its attributes, its value and inline text from its children.</summary>
-    private struct CellReading
+    private struct PendingCell
     {
         public string? Reference;
 
@@ -261,9 +261,9 @@ public sealed partial class ExcelReader : IFormatReader
 
         public string? Inline;
 
-        public static CellReading Opened(OpenXmlReader reader)
+        public static PendingCell Opened(OpenXmlReader reader)
         {
-            var cell = new CellReading();
+            var cell = new PendingCell();
 
             foreach (var attribute in reader.Attributes)
             {
@@ -330,12 +330,12 @@ public sealed partial class ExcelReader : IFormatReader
     /// <exception cref="DocumentTooLargeException">The styles define more than <see cref="MostFormats"/> number or cell formats.</exception>
     private static IReadOnlySet<uint> DateStyles(WorkbookStylesPart? styles, CancellationToken cancellationToken)
     {
-        HashSet<uint> dates = [];
+        HashSet<uint> dateStyles = [];
 
         if (styles is null)
-            return dates;
+            return dateStyles;
 
-        Dictionary<uint, bool> isDateFormat = [];
+        Dictionary<uint, bool> formatShowsDate = [];
         bool isInNumberFormats = false;
         bool isInCellFormats = false;
         uint index = 0;
@@ -348,29 +348,32 @@ public sealed partial class ExcelReader : IFormatReader
             else if (reader.ElementType == typeof(CellFormats))
                 isInCellFormats = reader.IsStartElement;
             else if (reader.IsStartElement && isInNumberFormats && reader.ElementType == typeof(NumberingFormat))
-                Defined(isDateFormat, (NumberingFormat)reader.LoadCurrentElement()!, cancellationToken);
+                Define(formatShowsDate, (NumberingFormat)reader.LoadCurrentElement()!, cancellationToken);
             else if (reader.IsStartElement && isInCellFormats && reader.ElementType == typeof(CellFormat))
-                index = Formatted(dates, isDateFormat, (CellFormat)reader.LoadCurrentElement()!, index, cancellationToken);
+            {
+                NoteDateStyle(dateStyles, formatShowsDate, (CellFormat)reader.LoadCurrentElement()!, index, cancellationToken);
+                index++;
+            }
         }
 
-        return dates;
+        return dateStyles;
     }
 
-    private static void Defined(Dictionary<uint, bool> isDateFormat, NumberingFormat format, CancellationToken cancellationToken)
+    private static void Define(Dictionary<uint, bool> formatShowsDate, NumberingFormat format, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (format.NumberFormatId?.Value is not { } id)
             return;
 
-        isDateFormat[id] = IsDateCode(format.FormatCode?.Value ?? string.Empty);
+        formatShowsDate[id] = IsDateCode(format.FormatCode?.Value ?? string.Empty);
 
-        if (isDateFormat.Count > MostFormats)
+        if (formatShowsDate.Count > MostFormats)
             throw new DocumentTooLargeException($"the workbook's styles define more than {MostFormats} number formats");
     }
 
-    /// <summary>Notes the cell format at <paramref name="index"/> when it shows a date, and answers the index of the next one.</summary>
-    private static uint Formatted(HashSet<uint> dates, Dictionary<uint, bool> isDateFormat, CellFormat format, uint index, CancellationToken cancellationToken)
+    /// <summary>Notes the cell format at <paramref name="index"/> as a date style when it shows a date.</summary>
+    private static void NoteDateStyle(HashSet<uint> dateStyles, Dictionary<uint, bool> formatShowsDate, CellFormat format, uint index, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -379,10 +382,8 @@ public sealed partial class ExcelReader : IFormatReader
 
         uint id = format.NumberFormatId?.Value ?? 0;
 
-        if (id is (>= 14 and <= 22) or (>= 45 and <= 47) || (isDateFormat.TryGetValue(id, out bool isDate) && isDate))
-            dates.Add(index);
-
-        return index + 1;
+        if (id is (>= 14 and <= 22) or (>= 45 and <= 47) || (formatShowsDate.TryGetValue(id, out bool showsDate) && showsDate))
+            dateStyles.Add(index);
     }
 
     private static bool IsDateCode(string code) =>
